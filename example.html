@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Reactinity - Example 1</title>
+  </head>
+  <body>
+    <section class="my-page-width mt-12">
+      <!-- Import the js code however you want -->
+      <script src="/reactinity.js"></script>
+      <script>
+        // Initialize Reactinity
+        const reactinity = new Reactinity();
+        // defined html attribute preprocessors
+        reactinity.usePostprocessor("number", (val) => Number(val));
+        reactinity.usePostprocessor("mmddyy", (unix) =>
+          new Date(unix).toLocaleDateString()
+        );
+
+        // Initialize global stores
+        const countStore = reactinity.newStore("count", 0);
+
+        function countUp() {
+          countStore.update((v) => v + 1);
+        }
+
+        function reset() {
+          countStore.set(0);
+        }
+
+        // Initialize a "derived" pattern, should I make this official? seems so simple...
+        const derived = reactinity.newStore("derived", countStore.value);
+        countStore.subscribe((v) => derived.set(v + 100));
+
+        // Initialize an object store
+        const obj = reactinity.newStore("user", {
+          name: "john",
+          age: 12,
+          joined: 1710853950,
+          child: {
+            name: "jenny",
+          },
+        });
+
+        // Initialize and attach the elements after they exist
+        window.addEventListener("DOMContentLoaded", () => {
+          reactinity.attachAllElements();
+        });
+
+        function changeChildName() {
+          obj.update((v) => {
+            v.child.name = "Michael";
+            return v;
+          });
+        }
+
+        // TODO: Make lists work
+        // Initialize a list store
+        const allUsersStore = reactinity.newStore("users", [
+          {
+            name: "john",
+            birthday: 1711804448 * Math.random(),
+          },
+          {
+            name: "blohn",
+            birthday: 1711804448 * Math.random(),
+          },
+          {
+            name: "cajon",
+            birthday: 1711804448 * Math.random(),
+          },
+        ]);
+
+        function addRandomUser() {
+          allUsersStore.update((v) => {
+            v.push({
+              name: Math.random(),
+              birthday: 1711804448 * Math.random(),
+            });
+            return v;
+          });
+        }
+
+        function rename(btn) {
+          console.log("[rename] event", btn);
+          // Im thinking the parent of the element block can contain id information for the row
+          const parent = btn.closest("[re-clone]");
+          const id = parent.getAttribute("re-row-id");
+          // // Then we can target the index specifically
+          // allUsersStore.updateRow((r) => {
+          //   r.name = Math.random();
+          //   return r;
+          // });
+          // // Or maybe something even more fine grained, editing only the field
+          // allUsersStore.updateRowField("name", (n) => {
+          //   return Math.random();
+          // });
+        }
+      </script>
+
+      <div>Reactive count: <span re-innerhtml="count"></span></div>
+      <button onclick="countUp()">Add to cart</button>
+      <button onclick="reset()">Reset</button>
+      <input type="number" re-bind="count" re-post="number" />
+      <div>Count plus 100: <span re-innerHTML="derived"></span></div>
+
+      <div style="border: 1px solid black; padding: 1em">
+        <div>Name: <span re-innerhtml="user.name"></span></div>
+        <div>Age: <span re-innerhtml="user.age"></span></div>
+        <div>
+          Joined: <span re-innerhtml="user.joined" re-pre="mmddyy"></span>
+        </div>
+        <div>Child name: <span re-innerhtml="user.child.name"></span></div>
+
+        <button onclick="changeChildName()">Change Child name</button>
+      </div>
+
+      <div>
+        NEXT GOAL: deal with lists. I want to be able to render full lists and
+        have the react to changes in the list and EACH element as granularly as
+        feasible
+      </div>
+      <button onclick="addRandomUser()">Add user</button>
+      <div re-list="users">
+        <div re-clone>
+          <div re-field="name"></div>
+          <div re-field="birthday" re-pre="mmddyy"></div>
+          <button onclick="rename(this)">Rename</button>
+        </div>
+      </div>
+    </section>
+  </body>
+</html>
