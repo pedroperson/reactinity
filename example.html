@@ -9,23 +9,32 @@
     <section class="my-page-width mt-12">
       <!-- Import the js code however you want -->
       <script src="/reactinity.js"></script>
+      <script src="/arrayStore.js"></script>
+
+      <style>
+        [re-template] {
+          display: none;
+        }
+      </style>
 
       <script>
         const reactinity = new Reactinity();
         // defined html attribute preprocessors
         reactinity.usePostprocessor("number", (val) => Number(val));
+        reactinity.usePostprocessor(
+          "length",
+          (val) => console.log("val.length", val.length) || val.length
+        );
         reactinity.usePostprocessor("mmddyy", (unix) =>
           new Date(unix).toLocaleDateString()
         );
         reactinity.usePostprocessor("dollars", (val) => {
-          // Use the Intl.NumberFormat object to format the price
           const formatter = new Intl.NumberFormat("en-US", {
             style: "currency",
             currency: "USD",
           });
-
-          // Return the formatted price
-          return formatter.format(val);
+          // Money is saved as cents
+          return formatter.format(val / 100);
         });
       </script>
 
@@ -44,18 +53,20 @@
             price: 15000,
           },
         ];
-        const productStore = reactinity.newArrayStore("products", products);
+        const productStore = reactinity.newStore("products", products);
+
+        const cartStore = reactinity.newStore("cart", []);
 
         function addToCart(event) {
           console.log("[called] addToCart", event, event.item);
+          // Something like this, maybe an append would be more appropriate
+          cartStore.update((v) => {
+            v.push(event.item);
+            return v;
+          });
         }
       </script>
-      <style>
-        [re-template] {
-          border: 3px solid red;
-          /* display: none; */
-        }
-      </style>
+
       <div re-array="products">
         <div re-template>
           <div re-field="name"></div>
@@ -63,6 +74,19 @@
           <div>
             <!-- Need to use event here so we can use the function in javacript and change its input -->
             <button re-click onclick="addToCart(event)">Add to cart</button>
+          </div>
+        </div>
+      </div>
+
+      <div>MY CART:</div>
+      <div>Item count: <span re-innerhtml="cart" re-post="length"></span></div>
+      <div re-array="cart">
+        <div re-template>
+          <div re-field="name"></div>
+          <div re-field="price" re-pretty="dollars"></div>
+          <div>
+            <!-- Need to use event here so we can use the function in javacript and change its input -->
+            <button re-click onclick="removeFromCart(event)">Remove</button>
           </div>
         </div>
       </div>

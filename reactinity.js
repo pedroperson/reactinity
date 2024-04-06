@@ -27,9 +27,11 @@ class Reactinity {
       );
 
     let preprocess = (val) => val;
-
+    // console.log("attachElement", el, tag);
     let postprocess =
       this.POSTPROCESSORS[el.getAttribute("re-post")] || ((val) => val);
+
+    console.log("attachElement", el, tag, postprocess);
     // Run the element's related storeFunctions to attach it to a store and other listeners
     fn(el, store, preprocess, postprocess, levels.slice(1));
   }
@@ -64,7 +66,8 @@ const storeFunctions = {
         // TODO: check for property existance and print pretty error if its doesnt!
         v = v[fields[i]];
       }
-      el.innerHTML = preprocess(v);
+      const process = postprocess || preprocess;
+      el.innerHTML = process(v);
     });
   },
   // Edit the store value when its value changes, and change its value when the store changes
@@ -83,6 +86,9 @@ const storeFunctions = {
   "re-list": (el, store, preprocess, postprocess) => {
     // This one is a little more complicated. I need to add/remove entire rows. but i also need to update each field in each of the existing rows as they get edited. Maybe the store behavior needs to account for the intial value being an array? but then its bad if they value starts as null or something and then becomes an array, i don't think i want to check at every update.
     // Maybe instead I can create a different type of store for arrays. One that has array functionality attached to it, and then index based updating! Then we can measure deltas more properly? Idk if its that worth to make each field only update exactly what uses it, or if better to just do the whole row. In terms of dom manipulation it is certainly more efficient to just update the field itself, but that may incur too much complexity on my end
+    // Then maybe the ideal thing is not to a have a general subscribe. maybe its better to have on push, on edit field, on remove, or whatever that get called by the array store, when the user calls those methods on the stores them selves. Like i have an array store, i call myStore.push({v}), which is a custom push function that edits the val, the calls push subscribers.
+    // That sounds a bit convoluted,but the alternative is to do some sort of diffing, which is a can of worms.
+    // Also, it might just be an issue of this being a completely different problem, so lets keep it out of this context and let it be its own things for now. Simple values and single objects can get handled by this format, but the arrays are a whole diffent thing.
     store.subscribe((val) => {
       console.log("This list has changed", val);
     });
