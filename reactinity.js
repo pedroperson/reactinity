@@ -3,7 +3,7 @@ class Reactinity {
     /** Global map of stores you can search through when subscribing to stores at any point in the application life time. */
     this.STORES = {};
     /** Postprocessing functions to transform data before saving it to the store. */
-    this.POSTPROCESSORS = {};
+    this.transforms = {};
   }
 
   attachAllElements() {
@@ -29,20 +29,19 @@ class Reactinity {
     let preprocess = (val) => val;
     // console.log("attachElement", el, tag);
     let postprocess =
-      this.POSTPROCESSORS[el.getAttribute("re-post")] || ((val) => val);
+      this.transforms[el.getAttribute("re-post")] || ((val) => val);
 
-    console.log("attachElement", el, tag, postprocess);
     // Run the element's related storeFunctions to attach it to a store and other listeners
     fn(el, store, preprocess, postprocess, levels.slice(1));
   }
 
   /** Registers a data transformation function under a specific identifier. This allows you to use your own custom preprocessing to data before it is saved or updated in the store.*/
-  usePostprocessor(id, fun) {
-    this.POSTPROCESSORS[id] = fun;
+  useTransform(id, fun) {
+    this.transforms[id] = fun;
   }
 
   getPostProcessor(id) {
-    return this.POSTPROCESSORS[id];
+    return this.transforms[id];
   }
 
   /** Creates and registers a new store with a unique identifier and an initial value.  If a store with the same identifier already exists, it throws an error to prevent overwriting.  */
@@ -53,8 +52,37 @@ class Reactinity {
     }
     throw new Error(`[iScream] a store with the id '${id}' already exists`);
   }
-}
 
+  attachArrayElements() {
+    document.querySelectorAll("[re-array]").forEach((parent) => {
+      const storeName = parent.getAttribute("re-array");
+      const store = this.STORES[storeName];
+      if (!store)
+        throw new Error(
+          `[iSCream] You are attempting to subscribe to an ArrayStore that does not exist: "${storeName}" `
+        );
+
+      const template = parent.querySelector("[re-template]");
+      if (!template)
+        throw new Error(
+          `[iSCream] your re-array is missing a re-template child: "${storeName}" `
+        );
+
+      store.subscribe((contents) => {
+        // Nucking everything every time
+        // TODO: obviously dont do this
+        while (parent.firstChild) {
+          parent.removeChild(parent.lastChild);
+        }
+        for (let i = 0; i < contents.length; i++) {
+          const item = contents[i];
+          const clone = cloneTemplate(template, item, this.transforms);
+          parent.appendChild(clone);
+        }
+      });
+    });
+  }
+}
 /** Define the key functionality of the library, keyed by the attribute on the element to be updated. Reactinity will look for elements with the attributes in each of the keys and subscribe them accordingly */
 const storeFunctions = {
   // Change the innerHTML of an element every time the related store changes
@@ -121,4 +149,60 @@ class Store {
   update(fn) {
     this.set(fn(this.value));
   }
+}
+
+class ArrayStore {
+  constructor(initialValue) {
+    this.arr = initialValue;
+    this.subs = [];
+    this.pushListeners = [];
+  }
+
+  subscribe(method) {
+    this.subs.push(method);
+    method(this.value); // Call it immediately
+  }
+
+  listenToPush(fn) {
+    pushListeners.push(fn);
+  }
+
+  set(val) {
+    this.value = val;
+    this.subs.forEach((method) => method(val));
+  }
+
+  insert(val, index = 0) {
+    this.arr.splice(index, 0, val);
+
+    pushListeners.forEach((method) => method(val, index));
+    this.subs.forEach((method) => method(val));
+  }
+}
+
+function cloneTemplate(template, item, transforms) {
+  const clone = template.cloneNode(true);
+  clone.removeAttribute("re-template");
+
+  clone.querySelectorAll("[re-field]").forEach((el) => {
+    const field = el.getAttribute("re-field");
+    const pretty = el.getAttribute("re-pretty");
+
+    const process = transforms[pretty] || ((v) => v);
+    el.innerHTML = process(item[field]);
+  });
+
+  clone.querySelectorAll("[re-click]").forEach((el) => {
+    // Hijack the click behavior. We do this to allow the user to use good old html and then we come in and add the item data to the click event to make that easy-peasy
+    const original = el.onclick;
+    el.onclick = null;
+    el.removeAttribute("onclick");
+    // Now we write our event customization layer so that the user has easy access to the item in the array related to the button being clicked
+    el.addEventListener("click", (event) => {
+      event = Object.assign(event, { item });
+      original(event);
+    });
+  });
+
+  return clone;
 }
