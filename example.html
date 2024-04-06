@@ -9,14 +9,112 @@
     <section class="my-page-width mt-12">
       <!-- Import the js code however you want -->
       <script src="/reactinity.js"></script>
+
       <script>
-        // Initialize Reactinity
         const reactinity = new Reactinity();
         // defined html attribute preprocessors
         reactinity.usePostprocessor("number", (val) => Number(val));
         reactinity.usePostprocessor("mmddyy", (unix) =>
           new Date(unix).toLocaleDateString()
         );
+        reactinity.usePostprocessor("dollars", (val) => {
+          // Use the Intl.NumberFormat object to format the price
+          const formatter = new Intl.NumberFormat("en-US", {
+            style: "currency",
+            currency: "USD",
+          });
+
+          // Return the formatted price
+          return formatter.format(val);
+        });
+      </script>
+
+      <script>
+        const products = [
+          {
+            name: "shirt",
+            price: 10000,
+          },
+          {
+            name: "skirt",
+            price: 20000,
+          },
+          {
+            name: "dress",
+            price: 15000,
+          },
+        ];
+        const productStore = reactinity.newArrayStore("products", products);
+
+        function addToCart(event) {
+          console.log("[called] addToCart", event, event.item);
+        }
+      </script>
+      <style>
+        [re-template] {
+          border: 3px solid red;
+          /* display: none; */
+        }
+      </style>
+      <div re-array="products">
+        <div re-template>
+          <div re-field="name"></div>
+          <div re-field="price" re-pretty="dollars"></div>
+          <div>
+            <!-- Need to use event here so we can use the function in javacript and change its input -->
+            <button re-click onclick="addToCart(event)">Add to cart</button>
+          </div>
+        </div>
+      </div>
+
+      <script>
+        const parent = document.querySelector("[re-array]");
+        const template = parent.querySelector("[re-template]");
+
+        function cloneTemplate() {
+          const clone = template.cloneNode(true);
+          clone.removeAttribute("re-template");
+          return clone;
+        }
+
+        function populate(clone, item) {
+          clone.querySelectorAll("[re-field]").forEach((el) => {
+            const field = el.getAttribute("re-field");
+            const pretty = el.getAttribute("re-pretty");
+            const process = reactinity.getPostProcessor(pretty) || ((v) => v);
+
+            el.innerHTML = process(item[field]);
+          });
+
+          clone.querySelectorAll("[re-click]").forEach((el) => {
+            // Hijack the click behavior. We do this to allow the user to use good old html and then we come in and add the item data to the click event to make that easy-peasy
+            const original = el.onclick;
+            el.onclick = null;
+            el.removeAttribute("onclick");
+            // Now we write our event customization layer so that the user has easy access to the item in the array related to the button being clicked
+            el.addEventListener("click", (event) => {
+              event = Object.assign(event, { item });
+              original(event);
+            });
+          });
+        }
+
+        const storeName = parent.getAttribute("re-array");
+        console.log({ parent, storeName });
+        // blablabla DO search blablabla
+        // const arrayStore = productStore;
+        // blablabla read the store and get contents blablabla
+        const contents = products;
+        for (let i = 0; i < contents.length; i++) {
+          const item = contents[i];
+          const clone = cloneTemplate();
+          populate(clone, item);
+          parent.appendChild(clone);
+        }
+      </script>
+
+      <script>
+        // Initialize Reactinity
 
         // Initialize global stores
         const countStore = reactinity.newStore("count", 0);

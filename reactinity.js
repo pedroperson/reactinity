@@ -39,6 +39,10 @@ class Reactinity {
     this.POSTPROCESSORS[id] = fun;
   }
 
+  getPostProcessor(id) {
+    return this.POSTPROCESSORS[id];
+  }
+
   /** Creates and registers a new store with a unique identifier and an initial value.  If a store with the same identifier already exists, it throws an error to prevent overwriting.  */
   newStore(id, initialValue) {
     if (!this.STORES[id]) {
