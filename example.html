@@ -9,15 +9,118 @@
     <section class="my-page-width mt-12">
       <!-- Import the js code however you want -->
       <script src="/reactinity.js"></script>
+
+      <!-- Keep the ArrayStore templates from showing from the start. is there are better way to do this ? Maybe we shouldn't care and just do it js asap? -->
+      <style>
+        [re-template] {
+          display: none;
+        }
+      </style>
+
+      <!-- ---------------------------------------------------------------- -->
+      <!-- INITIALIZE REACTINITY ------------------------------------------ -->
+      <!-- ---------------------------------------------------------------- -->
       <script>
-        // Initialize Reactinity
         const reactinity = new Reactinity();
-        // defined html attribute preprocessors
-        reactinity.usePostprocessor("number", (val) => Number(val));
-        reactinity.usePostprocessor("mmddyy", (unix) =>
+
+        // Define your own data transforms to be used anywhere in the UI.
+        reactinity.useTransform("number", (val) => Number(val));
+        reactinity.useTransform("length", (val) => val.length);
+        reactinity.useTransform("mmddyy", (unix) =>
           new Date(unix).toLocaleDateString()
         );
+        // Include your own business logic
+        reactinity.useTransform("dollars", toDollars);
+        reactinity.useTransform("totalCartPrice", (products) => {
+          let totalCents = products.reduce((sum, p) => sum + p.price, 0);
+          let tax = totalCents * 0.1;
+          return toDollars(totalCents + tax);
+        });
 
+        function toDollars(cents) {
+          const opts = { style: "currency", currency: "USD" };
+          return new Intl.NumberFormat("en-US", opts).format(cents / 100);
+        }
+
+        // Turn DOM elements reactive
+        // TODO: Should we move this to reactinity constructor? idk user would lose choice of when to run it... but save a lot of hassle too, could maybe have a different init with it and without it
+        window.addEventListener("DOMContentLoaded", () => {
+          reactinity.attachAllElements();
+          reactinity.attachArrayElements();
+        });
+      </script>
+
+      <!-- ---------------------------------------------------------------- -->
+      <!-- ARRAY EXAMPLES ------------------------------------------------- -->
+      <!-- ---------------------------------------------------------------- -->
+
+      <script>
+        const products = [
+          {
+            name: "shirt",
+            price: 10000,
+          },
+          {
+            name: "skirt",
+            price: 20000,
+          },
+          {
+            name: "dress",
+            price: 15000,
+          },
+        ];
+        const productStore = reactinity.newStore("products", products);
+
+        const cartStore = reactinity.newStore("cart", []);
+
+        function addToCart(event) {
+          console.log("[called] addToCart", event, event.item);
+          // TODO: use array stoer here
+          // Something like this, maybe an append would be more appropriate
+          cartStore.update((v) => {
+            v.push(event.item);
+            return v;
+          });
+        }
+
+        function removeFromCart(event) {
+          cartStore.update((pp) =>
+            pp.filter((p) => p.name !== event.item.name)
+          );
+        }
+      </script>
+
+      <div re-array="products">
+        <div re-template>
+          <div re-field="name"></div>
+          <div re-field="price" re-pretty="dollars"></div>
+          <div>
+            <!-- Need to use event here so we can use the function in javacript and change its input -->
+            <button re-click onclick="addToCart(event)">Add to cart</button>
+          </div>
+        </div>
+      </div>
+
+      <div>MY CART:</div>
+      <div>Item count: <span re-innerhtml="cart" re-post="length"></span></div>
+      <div>
+        TOTAL: <span re-innerhtml="cart" re-post="totalCartPrice"></span>
+      </div>
+      <div re-array="cart">
+        <div re-template>
+          <div re-field="name"></div>
+          <div re-field="price" re-pretty="dollars"></div>
+          <div>
+            <!-- Need to use event here so we can use the function in javacript and change its input -->
+            <button re-click onclick="removeFromCart(event)">Remove</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ---------------------------------------------------------------- -->
+      <!-- BASIC EXAMPLES ------------------------------------------------- -->
+      <!-- ---------------------------------------------------------------- -->
+      <script>
         // Initialize global stores
         const countStore = reactinity.newStore("count", 0);
 
@@ -43,59 +146,11 @@
           },
         });
 
-        // Initialize and attach the elements after they exist
-        window.addEventListener("DOMContentLoaded", () => {
-          reactinity.attachAllElements();
-        });
-
         function changeChildName() {
           obj.update((v) => {
             v.child.name = "Michael";
             return v;
           });
-        }
-
-        // TODO: Make lists work
-        // Initialize a list store
-        const allUsersStore = reactinity.newStore("users", [
-          {
-            name: "john",
-            birthday: 1711804448 * Math.random(),
-          },
-          {
-            name: "blohn",
-            birthday: 1711804448 * Math.random(),
-          },
-          {
-            name: "cajon",
-            birthday: 1711804448 * Math.random(),
-          },
-        ]);
-
-        function addRandomUser() {
-          allUsersStore.update((v) => {
-            v.push({
-              name: Math.random(),
-              birthday: 1711804448 * Math.random(),
-            });
-            return v;
-          });
-        }
-
-        function rename(btn) {
-          console.log("[rename] event", btn);
-          // Im thinking the parent of the element block can contain id information for the row
-          const parent = btn.closest("[re-clone]");
-          const id = parent.getAttribute("re-row-id");
-          // // Then we can target the index specifically
-          // allUsersStore.updateRow((r) => {
-          //   r.name = Math.random();
-          //   return r;
-          // });
-          // // Or maybe something even more fine grained, editing only the field
-          // allUsersStore.updateRowField("name", (n) => {
-          //   return Math.random();
-          // });
         }
       </script>
 
@@ -114,20 +169,6 @@
         <div>Child name: <span re-innerhtml="user.child.name"></span></div>
 
         <button onclick="changeChildName()">Change Child name</button>
-      </div>
-
-      <div>
-        NEXT GOAL: deal with lists. I want to be able to render full lists and
-        have the react to changes in the list and EACH element as granularly as
-        feasible
-      </div>
-      <button onclick="addRandomUser()">Add user</button>
-      <div re-list="users">
-        <div re-clone>
-          <div re-field="name"></div>
-          <div re-field="birthday" re-pre="mmddyy"></div>
-          <button onclick="rename(this)">Rename</button>
-        </div>
       </div>
     </section>
   </body>
