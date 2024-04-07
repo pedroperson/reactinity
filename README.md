@@ -56,3 +56,4 @@ Run the example.html file locally to see it in action! You should see the value 
 - Rename project, Reactinity is hard to say and spell
 - Publish the example online so people can test it out without downloading it
 - Turn this into a usable, downloadable/ importable library that people can actually use without copy pasting
+

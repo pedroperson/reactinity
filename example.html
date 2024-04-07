@@ -72,6 +72,11 @@
         const productStore = reactinity.newStore("products", products);
 
         const cartStore = reactinity.newStore("cart", []);
+        const filterStore = reactinity.newStore("filter", 0);
+
+        filterStore.subscribe((v) => {
+          productStore.set(products.filter((p, i) => i >= v));
+        });
 
         function addToCart(event) {
           console.log("[called] addToCart", event, event.item);
@@ -89,6 +94,14 @@
           );
         }
       </script>
+      <label for="cars">Filter products:</label>
+
+      <select re-bind="filter" re-post="number">
+        <option value="0">0</option>
+        <option value="1">1</option>
+        <option value="2">2</option>
+        <option value="3">3</option>
+      </select>
 
       <div re-array="products">
         <div re-template>
