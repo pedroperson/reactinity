@@ -29,7 +29,7 @@ class Reactinity {
     let preprocess = (val) => val;
     // console.log("attachElement", el, tag);
     let postprocess =
-      this.transforms[el.getAttribute("re-post")] || ((val) => val);
+      this.transforms[el.getAttribute("re-transform")] || ((val) => val);
 
     // Run the element's related storeFunctions to attach it to a store and other listeners
     fn(el, store, preprocess, postprocess, levels.slice(1));
@@ -74,11 +74,12 @@ class Reactinity {
         while (parent.firstChild) {
           parent.removeChild(parent.lastChild);
         }
-        for (let i = 0; i < contents.length; i++) {
-          const item = contents[i];
-          const clone = cloneTemplate(template, item, this.transforms);
-          parent.appendChild(clone);
-        }
+
+        parent.append(
+          ...contents.map((item) =>
+            cloneTemplate(template, item, this.transforms)
+          )
+        );
       });
     });
   }
@@ -186,10 +187,10 @@ function cloneTemplate(template, item, transforms) {
 
   clone.querySelectorAll("[re-field]").forEach((el) => {
     const field = el.getAttribute("re-field");
-    const pretty = el.getAttribute("re-pretty");
+    const transName = el.getAttribute("re-transform");
 
-    const process = transforms[pretty] || ((v) => v);
-    el.innerHTML = process(item[field]);
+    const transform = transforms[transName] || ((v) => v);
+    el.innerHTML = transform(item[field]);
   });
 
   clone.querySelectorAll("[re-click]").forEach((el) => {

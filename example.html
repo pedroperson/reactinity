@@ -96,7 +96,7 @@
       </script>
       <label for="cars">Filter products:</label>
 
-      <select re-bind="filter" re-post="number">
+      <select re-bind="filter" re-transform="number">
         <option value="0">0</option>
         <option value="1">1</option>
         <option value="2">2</option>
@@ -106,7 +106,7 @@
       <div re-array="products">
         <div re-template>
           <div re-field="name"></div>
-          <div re-field="price" re-pretty="dollars"></div>
+          <div re-field="price" re-transform="dollars"></div>
           <div>
             <!-- Need to use event here so we can use the function in javacript and change its input -->
             <button re-click onclick="addToCart(event)">Add to cart</button>
@@ -115,14 +115,17 @@
       </div>
 
       <div>MY CART:</div>
-      <div>Item count: <span re-innerhtml="cart" re-post="length"></span></div>
       <div>
-        TOTAL: <span re-innerhtml="cart" re-post="totalCartPrice"></span>
+        Item count: <span re-innerhtml="cart" re-transform="length"></span>
       </div>
+      <div>
+        TOTAL: <span re-innerhtml="cart" re-transform="totalCartPrice"></span>
+      </div>
+
       <div re-array="cart">
         <div re-template>
           <div re-field="name"></div>
-          <div re-field="price" re-pretty="dollars"></div>
+          <div re-field="price" re-transform="dollars"></div>
           <div>
             <!-- Need to use event here so we can use the function in javacript and change its input -->
             <button re-click onclick="removeFromCart(event)">Remove</button>
@@ -170,14 +173,14 @@
       <div>Reactive count: <span re-innerhtml="count"></span></div>
       <button onclick="countUp()">Add to cart</button>
       <button onclick="reset()">Reset</button>
-      <input type="number" re-bind="count" re-post="number" />
+      <input type="number" re-bind="count" re-transform="number" />
       <div>Count plus 100: <span re-innerHTML="derived"></span></div>
 
       <div style="border: 1px solid black; padding: 1em">
         <div>Name: <span re-innerhtml="user.name"></span></div>
         <div>Age: <span re-innerhtml="user.age"></span></div>
         <div>
-          Joined: <span re-innerhtml="user.joined" re-pre="mmddyy"></span>
+          Joined: <span re-innerhtml="user.joined" re-transform="mmddyy"></span>
         </div>
         <div>Child name: <span re-innerhtml="user.child.name"></span></div>
 
