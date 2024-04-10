@@ -39,11 +39,13 @@ class Reactinity {
         `[iSCream] You are attempting to subscribe to a store that is not in the global store: ${id} `
       );
 
-    let transform =
-      this.transforms[el.getAttribute("re-transform")] || ((val) => val);
+    let transform = this.transforms[el.getAttribute("re-transform")];
 
     // Run the element's related storeFunctions to attach it to a store and other listeners
-    fn(el, store, transform, levels.slice(1));
+    const unsubscribe = fn(el, store, transform, levels.slice(1));
+
+    // TODO: I dont even know what I am going to do with this but im goiong to leave it here for now
+    Object.assign(el, { re_unsubscribe: unsubscribe });
   }
 
   /** Registers a data transformation function under a specific identifier. This allows you to use your own custom preprocessing to data before it is saved or updated in the store.*/
@@ -92,26 +94,40 @@ class Reactinity {
 const storeFunctions = {
   // Change the innerHTML of an element every time the related store changes
   "re-innerhtml": (el, store, transform, fields) => {
-    store.subscribe((val) => {
+    return store.subscribe((val) => {
       let v = val;
-      // TODO: Maybe we should check if the specific field has changed?
+      // Go down the children of the object
       for (let i = 0; i < fields.length; i++) {
         v = v[fields[i]];
       }
 
-      el.innerHTML = transform(v);
+      // Prettify the value for the UI
+      if (transform) {
+        v = transform(v);
+      }
+
+      // Conditionally re-render. Using the DOM as our state manager here so can only do this check after prepocessing
+      if (el.innerHTML !== v) {
+        el.innerHTML = v;
+      }
     });
   },
   // Edit the store value when its value changes, and change its value when the store changes
   "re-bind": (el, store, transform) => {
+    // Update the store at element input
+    el.addEventListener("input", () => {
+      let v = el.value;
+      if (transform) v = transform(v);
+      store.set(v);
+    });
+
     // Update element value at store change
-    store.subscribe((val) => {
+    return store.subscribe((val) => {
+      // FUTURE: Totes raw-doggin the value here, i guess this is why i wanted the preprocessor stuff. Maybe there is a better way to do this subscribing
       if (el.value !== val) {
         el.value = val;
       }
     });
-    // Update the store at element input
-    el.addEventListener("input", (e) => store.set(transform(el.value)));
   },
 };
 

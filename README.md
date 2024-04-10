@@ -70,10 +70,12 @@ function monkeypress(){
 }
 
 const sleep = async (delay) =>new Promise((resolve) => setTimeout(resolve, delay));
+const loops = 1000;
+const sleepDelay = 1;
 const fn = async function() {
-for (let i = 0 ; i <10000; i++){
+for (let i = 0 ; i <loops; i++){
     monkeypress();
-    await sleep(1);
+    await sleep(sleepDelay);
 }}
 fn();
 ```

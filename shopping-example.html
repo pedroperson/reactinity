@@ -106,6 +106,7 @@
             newItemInCartFlag.set(true);
           }
           lastCartLength = p.length;
+
         })
 
 
@@ -117,6 +118,7 @@
           let totalCents = products.reduce((sum, p) => sum + p.price*(p._quantity || 1), 0);
           
           let tax = totalCents * 0.08;
+          
           return centsToDollarString(totalCents + tax);
         });
 
@@ -126,6 +128,9 @@
         }
 
       </script>
+
+      <div style="margin-top:20px; font-size:2em;">The store:</div>
+
       <label for="cars">Filter products:</label>
 
       <select re-bind="filter" re-transform="number">
@@ -135,7 +140,7 @@
         <option value="3">3</option>
       </select>
 
-      <div re-array="products"  style="display:flex; flex-wrap:wrap; gap:10px;">
+      <div re-array="products"  style="display:flex; flex-wrap:wrap; gap:10px; margin-top:20px;">
         <div re-template>
           <div re-field="name"></div>
           <div re-field="price" re-transform="dollars"></div>
@@ -146,7 +151,7 @@
         </div>
       </div>
 
-      <div>MY CART:</div>
+      <div style="margin-top:20px; font-size:2em;">MY CART:</div>
       <div>
         Item count: <span re-innerhtml="cart" re-transform="length"></span>
       </div>
@@ -160,9 +165,10 @@
           <div re-field="price" re-transform="dollars"></div>
 
           <div>Quantity: <span re-field="_quantity"></span></div>
+
           <!-- TODO: conditional rendering...  -->
           <!-- Im thinking the cleaner way may be to have signal for everyone one of these, and then we force set the css display on subscribe toggle, but that seems like a little bit of work -->
-          <div re-show="_quantity">Wow how many!</div>
+          <!-- <div re-show="_quantity" or re-show="someBooleanStore">Wow how many!</div> -->
           <div>
             <!-- Need to use event here so we can use the function in javacript and change its input -->
             <!-- TODO: make the "remove" text reactive; some ideas below -->
