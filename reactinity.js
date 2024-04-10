@@ -248,6 +248,22 @@ class ArrayStore {
   //   this.subs.forEach((method) => method(val));
   // }
 }
+/* subscribe: subscribeAsArray,
+    subscribeAsMap: subscribe,
+    // Allow the setting to come as arrays to match the subscribe
+    set: overwrite,
+    overwrite,
+    overwriteItem,
+    remove,
+    append,
+    appendAtStart,
+    concat,
+    getAll,
+    getByID,
+    getByField,
+    getField,
+    setField,
+    updateField,*/
 
 class ArrayStoreUISubscriber {
   constructor(parentElement, transforms) {
