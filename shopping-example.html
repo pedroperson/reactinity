@@ -21,33 +21,9 @@
       <!-- INITIALIZE REACTINITY ------------------------------------------ -->
       <!-- ---------------------------------------------------------------- -->
       <script>
+        // Initialize Reactinity! IDK WHERE THIS SHOULD LIVE!
         const reactinity = new Reactinity();
-
-        // Define your own data transforms to be used anywhere in the UI.
-        reactinity.useTransform("number", (val) => Number(val));
-        reactinity.useTransform("length", (val) => val.length);
-        reactinity.useTransform("mmddyy", (unix) =>
-          new Date(unix).toLocaleDateString()
-        );
-        // Include your own business logic
-        reactinity.useTransform("dollars", toDollars);
-        reactinity.useTransform("totalCartPrice", (products) => {
-          let totalCents = products.reduce((sum, p) => sum + p.price, 0);
-          let tax = totalCents * 0.1;
-          return toDollars(totalCents + tax);
-        });
-
-        function toDollars(cents) {
-          const opts = { style: "currency", currency: "USD" };
-          return new Intl.NumberFormat("en-US", opts).format(cents / 100);
-        }
-
-        // Turn DOM elements reactive
-        // TODO: Should we move this to reactinity constructor? idk user would lose choice of when to run it... but save a lot of hassle too, could maybe have a different init with it and without it
-        window.addEventListener("DOMContentLoaded", () => {
-          reactinity.attachAllElements();
-          reactinity.attachArrayElements();
-        });
+        reactinity.defaultInit();
       </script>
 
       <!-- ---------------------------------------------------------------- -->
@@ -68,12 +44,49 @@
             name: "dress",
             price: 15000,
           },
+          {
+            name: "shoes",
+            price: 8000,
+          },
         ];
-        // The visible products in the store
-        const productStore = reactinity.newStore("products", products);
 
+
+
+        class Cart {
+            constructor(arrayStore){
+                this.arrayStore = arrayStore
+            }
+
+            add(product) {
+              const v= this.arrayStore.GETROW(row=>row.name===product.name);
+              if (v === undefined) {
+                this.arrayStore.append(Object.assign(product,{_quantity:1}));
+              } else {
+                v.updateField("_quantity",(q)=>q+1);
+              }
+            }
+
+            remove(product) {
+              const row= this.arrayStore.GETROW(row=>row.name===product.name);
+              if (row === undefined) return;
+
+              if (row.data._quantity >1){
+                row.updateField("_quantity",(q)=>q-1);
+                return;
+              }
+
+              row.delete();
+            }
+        }
+
+
+      </script>
+      <script>
+        // The visible products in the store
+        const productStore = reactinity.newArrayStore("products", products);
+        console.log("productStore",productStore);
         // A list of products in the user's cart
-        const cartStore = reactinity.newStore("cart", []);
+        const cartStore = reactinity.newArrayStore("cart", []);
         // Page will have a filter value which we will use to hide certain products from view
         const filterStore = reactinity.newStore("filter", 0);
 
@@ -82,38 +95,22 @@
           productStore.set(products.filter((p, i) => i >= v));
         });
 
-        class Cart {
-            constructor(store){
-                this.store = store
-            }
-
-            add(product) {
-                this.store.update((v) => {
-                    const i = v.findIndex(row=>row.name===product.name);
-                    if (i === -1) {
-                        v.push(Object.assign(product,{_quantity:1}));
-                    } else {
-                        v[i]._quantity += 1;
-                    }
-                    return v;
-                });
-            }
-
-            remove(product) {
-                this.store.update((v) =>{
-                    const i = v.findIndex(row=>row.name===product.name);
-                    if (i === -1) return v   
-
-                    v[i]._quantity -= 1;
-                    if (v[i]._quantity <= 0)[
-                        v.splice(i,1)
-                    ]
-                    return v
-                });
-            }
-        }
 
         const CART = new Cart(cartStore);
+        
+        // Include your own business logic
+        reactinity.useTransform("dollars", centsToDollarString);
+        reactinity.useTransform("totalCartPrice", (products) => {
+          let totalCents = products.reduce((sum, p) => sum + p.price*(p._quantity || 1), 0);
+          
+          let tax = totalCents * 0.08;
+          return centsToDollarString(totalCents + tax);
+        });
+
+        function centsToDollarString(cents) {
+          const opts = { style: "currency", currency: "USD" };
+          return new Intl.NumberFormat("en-US", opts).format(cents / 100);
+        }
 
       </script>
       <label for="cars">Filter products:</label>
@@ -155,7 +152,7 @@
           <div>
             <!-- Need to use event here so we can use the function in javacript and change its input -->
             <!-- TODO: make the "remove" text reactive; some ideas below -->
-            <button re-click onclick="CART.remove(event.item)" re-field="_quantity"  re-transform="(v)=>v?'Remove':'Remove all'" 
+            <button re-click onclick="CART.remove(event.item)" re---field="_quantity"  re-transform="(v)=>v?'Remove':'Remove all'" 
                 re-falsy="Remove All">Remove</button>
           </div>
         </div>

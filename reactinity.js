@@ -6,6 +6,19 @@ class Reactinity {
     this.transforms = {};
   }
 
+  defaultInit() {
+    // Define your own data transforms to be used anywhere in the UI.
+    this.useTransform("number", (val) => Number(val));
+    this.useTransform("length", (val) => val.length);
+    this.useTransform("mmddyy", (unix) => new Date(unix).toLocaleDateString());
+
+    // Turn DOM elements reactive
+    window.addEventListener("DOMContentLoaded", () => {
+      this.attachAllElements();
+      this.attachArrayElements();
+    });
+  }
+
   attachAllElements() {
     Object.entries(storeFunctions).forEach(([tag, fn]) => {
       document.querySelectorAll(`[${tag}]`).forEach((el) => {
@@ -53,6 +66,14 @@ class Reactinity {
     throw new Error(`[iScream] a store with the id '${id}' already exists`);
   }
 
+  newArrayStore(id, initialValue) {
+    if (!this.STORES[id]) {
+      this.STORES[id] = new ArrayStore(initialValue);
+      return this.STORES[id];
+    }
+    throw new Error(`[iScream] a store with the id '${id}' already exists`);
+  }
+
   attachArrayElements() {
     document.querySelectorAll("[re-array]").forEach((parent) => {
       const storeName = parent.getAttribute("re-array");
@@ -68,19 +89,13 @@ class Reactinity {
           `[iSCream] your re-array is missing a re-template child: "${storeName}" `
         );
 
-      store.subscribe((contents) => {
-        // Nucking everything every time
-        // TODO: obviously dont do this
-        while (parent.firstChild) {
-          parent.removeChild(parent.lastChild);
-        }
+      // GET BACK HERE IS WHERE WE DEFINE THE UI THING
+      // , driver = ArrayStoreUISubscriber
+      const sub = new ArrayStoreUISubscriber(parent, this.transforms);
+      console.log("GOING TO PROPERLY SUB TO AN ARRAY STORE", sub);
 
-        parent.append(
-          ...contents.map((item) =>
-            cloneTemplate(template, item, this.transforms)
-          )
-        );
-      });
+      console.log("GOING TO PROPERLY SUB TO AN ARRAY STORE", store);
+      store.subscribe(sub);
     });
   }
 }
@@ -89,6 +104,7 @@ const storeFunctions = {
   // Change the innerHTML of an element every time the related store changes
   "re-innerhtml": (el, store, preprocess, postprocess, fields) => {
     store.subscribe((val) => {
+      console.log("SUBSCRIBE IN re-innerhtml");
       let v = val;
       // TODO: Maybe we should check if the specific field has changed?
       for (let i = 0; i < fields.length; i++) {
@@ -101,6 +117,7 @@ const storeFunctions = {
   },
   // Edit the store value when its value changes, and change its value when the store changes
   "re-bind": (el, store, preprocess, postprocess) => {
+    console.log("SUBSCRIBE IN re-bind");
     // Update element value at store change
     store.subscribe((val) => {
       const v = preprocess(val);
@@ -110,17 +127,6 @@ const storeFunctions = {
     });
     // Update the store at element input
     el.addEventListener("input", (e) => store.set(postprocess(e.target.value)));
-  },
-  // TODO: List subscribe, imagine a list of users, or a TODO list
-  "re-list": (el, store, preprocess, postprocess) => {
-    // This one is a little more complicated. I need to add/remove entire rows. but i also need to update each field in each of the existing rows as they get edited. Maybe the store behavior needs to account for the intial value being an array? but then its bad if they value starts as null or something and then becomes an array, i don't think i want to check at every update.
-    // Maybe instead I can create a different type of store for arrays. One that has array functionality attached to it, and then index based updating! Then we can measure deltas more properly? Idk if its that worth to make each field only update exactly what uses it, or if better to just do the whole row. In terms of dom manipulation it is certainly more efficient to just update the field itself, but that may incur too much complexity on my end
-    // Then maybe the ideal thing is not to a have a general subscribe. maybe its better to have on push, on edit field, on remove, or whatever that get called by the array store, when the user calls those methods on the stores them selves. Like i have an array store, i call myStore.push({v}), which is a custom push function that edits the val, the calls push subscribers.
-    // That sounds a bit convoluted,but the alternative is to do some sort of diffing, which is a can of worms.
-    // Also, it might just be an issue of this being a completely different problem, so lets keep it out of this context and let it be its own things for now. Simple values and single objects can get handled by this format, but the arrays are a whole diffent thing.
-    store.subscribe((val) => {
-      console.log("This list has changed", val);
-    });
   },
 };
 
@@ -153,37 +159,132 @@ class Store {
 }
 
 class ArrayStore {
-  constructor(initialValue) {
-    this.arr = initialValue;
-    this.subs = [];
-    this.pushListeners = [];
+  constructor(array) {
+    /** @type {Array}*/
+    this.array = array;
+    this.callbackSubscribers = [];
+    this.fancySubscribers = [];
   }
 
-  subscribe(method) {
-    this.subs.push(method);
-    method(this.value); // Call it immediately
+  get() {
+    return this.array;
   }
 
-  listenToPush(fn) {
-    pushListeners.push(fn);
+  subscribe(subscriber) {
+    // A subscriber has the same public interface as the array store (except for the subscribe function)
+    if (typeof subscriber === "function") {
+      this.callbackSubscribers.push(subscriber);
+      subscriber(this.array);
+      return;
+    }
+
+    console.log("fancy subscriber", subscriber);
+    this.fancySubscribers.push(subscriber);
+    // run the overwrite function immediately
+    subscriber.set(this.array);
   }
 
-  set(val) {
-    this.value = val;
-    this.subs.forEach((method) => method(val));
+  append(val) {
+    this.array.push(val);
+    this.fancySubscribers.forEach((s) => s.append(val));
+    this.callbackSubscribers.forEach((c) => c(this.array));
   }
 
-  insert(val, index = 0) {
-    this.arr.splice(index, 0, val);
+  set(newArray) {
+    this.array = newArray;
+    this.fancySubscribers.forEach((s) => s.overwrite(newArray));
+    this.callbackSubscribers.forEach((c) => c(this.array));
+  }
 
-    pushListeners.forEach((method) => method(val, index));
-    this.subs.forEach((method) => method(val));
+  // An idea for how to interact with a specific row in a way that sort of fits the normal flow of logic anyway, of checkforpresence->do something if some value if somethimg->update the data accordingly. I don't knwo that we need this to be a separate logic layer like this but it feels kinda good to use!
+  GETROW(where) {
+    const row = this.array.find(where);
+    if (!row) return undefined;
+    return {
+      updateField: (field, fn) => {
+        row[field] = fn(row[field]);
+
+        this.callbackSubscribers.forEach((c) => c(this.array));
+
+        this.fancySubscribers.forEach((s) => {
+          s.updateField(row, field, fn);
+        });
+      },
+      delete: () => {
+        const i = this.array.findIndex((r) => r === row);
+        if (i === -1) return;
+        this.array.splice(i, 1);
+
+        this.callbackSubscribers.forEach((c) => c(this.array));
+
+        this.fancySubscribers.forEach((s) => {
+          s.deleteRow(row);
+        });
+      },
+      data: row,
+    };
+  }
+
+  // TODO: rewrite
+  // insert(val, index = 0) {
+  //   this.arr.splice(index, 0, val);
+
+  //   pushListeners.forEach((method) => method(val, index));
+  //   this.subs.forEach((method) => method(val));
+  // }
+}
+
+class ArrayStoreUISubscriber {
+  constructor(parentElement, transforms) {
+    this.parent = parentElement;
+    console.log("parent", this.parent);
+    this.template = this.parent.querySelector("[re-template]");
+    this.transforms = transforms;
+
+    this.children = [];
+  }
+
+  append(val) {
+    const el = cloneTemplate(val, this.template, this.transforms);
+    this.parent.append(el);
+    console.log("should have appended something", el, this.parent);
+  }
+
+  set(newArray) {
+    while (this.parent.firstChild) {
+      this.parent.removeChild(this.parent.lastChild);
+    }
+
+    this.parent.append(
+      ...newArray.map((val) =>
+        cloneTemplate(val, this.template, this.transforms)
+      )
+    );
+    console.log("should have overwritten", newArray, this.parent);
+  }
+
+  updateField(data, field, fn) {
+    const el = Array.from(this.parent.children).find((el) => {
+      return el.DIRTYDATA === data;
+    });
+
+    el.querySelector(`[re-field="${field}"]`).innerHTML = data[field];
+  }
+
+  deleteRow(data) {
+    const el = Array.from(this.parent.children).find((el) => {
+      return el.DIRTYDATA === data;
+    });
+
+    this.parent.removeChild(el);
   }
 }
 
-function cloneTemplate(template, item, transforms) {
+function cloneTemplate(item, template, transforms) {
   const clone = template.cloneNode(true);
   clone.removeAttribute("re-template");
+
+  Object.assign(clone, { DIRTYDATA: item });
 
   clone.querySelectorAll("[re-field]").forEach((el) => {
     const field = el.getAttribute("re-field");
