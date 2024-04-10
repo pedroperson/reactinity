@@ -192,7 +192,7 @@ class ArrayStore {
 
   set(newArray) {
     this.array = newArray;
-    this.fancySubscribers.forEach((s) => s.overwrite(newArray));
+    this.fancySubscribers.forEach((s) => s.set(newArray));
     this.callbackSubscribers.forEach((c) => c(this.array));
   }
 
@@ -215,10 +215,25 @@ class ArrayStore {
         if (i === -1) return;
         this.array.splice(i, 1);
 
+        // TODO: Do we have to unsubscribe??
+
         this.callbackSubscribers.forEach((c) => c(this.array));
 
         this.fancySubscribers.forEach((s) => {
           s.deleteRow(row);
+        });
+      },
+      overwrite: (newVal) => {
+        const i = this.array.findIndex((r) => r === row);
+        if (i === -1) return;
+        this.array.splice(i, 1, newVal);
+
+        // TODO: Do we have to unsubscribe??
+
+        this.callbackSubscribers.forEach((c) => c(this.array));
+
+        this.fancySubscribers.forEach((s) => {
+          s.overwriteRow(row, newVal);
         });
       },
       data: row,
@@ -276,6 +291,16 @@ class ArrayStoreUISubscriber {
       return el.DIRTYDATA === data;
     });
 
+    this.parent.removeChild(el);
+  }
+
+  overwriteRow(data, newData) {
+    const el = Array.from(this.parent.children).find((el) => {
+      return el.DIRTYDATA === data;
+    });
+
+    const newNode = cloneTemplate(newData, this.template, this.transforms);
+    this.parent.insertBefore(newNode, el);
     this.parent.removeChild(el);
   }
 }

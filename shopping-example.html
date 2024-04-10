@@ -58,7 +58,7 @@
             }
 
             add(product) {
-              const v= this.arrayStore.GETROW(row=>row.name===product.name);
+              const v= this.arrayStore.GETROW(item=>item===product);
               if (v === undefined) {
                 this.arrayStore.append(Object.assign(product,{_quantity:1}));
               } else {
@@ -67,7 +67,7 @@
             }
 
             remove(product) {
-              const row= this.arrayStore.GETROW(row=>row.name===product.name);
+              const row= this.arrayStore.GETROW(item=>item===product);
               if (row === undefined) return;
 
               if (row.data._quantity >1){
@@ -77,23 +77,37 @@
 
               row.delete();
             }
+
+            change(product) {
+              const row= this.arrayStore.GETROW(item=>item===product);
+              if (row === undefined) return;
+
+              row.overwrite(Object.assign(products[0],{_quantity:1}));
+            }
         }
 
 
       </script>
       <script>
-        // The visible products in the store
+        // The visible products in the page
         const productStore = reactinity.newArrayStore("products", products);
-        console.log("productStore",productStore);
         // A list of products in the user's cart
         const cartStore = reactinity.newArrayStore("cart", []);
         // Page will have a filter value which we will use to hide certain products from view
         const filterStore = reactinity.newStore("filter", 0);
 
         filterStore.subscribe((v) => {
-            // TODO: the array store should provide a method for this, not using "set"
           productStore.set(products.filter((p, i) => i >= v));
         });
+
+        let lastCartLength = 0;
+        const newItemInCartFlag = reactinity.newStore("new-item-flag", false);
+        productStore.subscribe(p=>{
+          if (p.length > lastCartLength) {
+            newItemInCartFlag.set(true);
+          }
+          lastCartLength = p.length;
+        })
 
 
         const CART = new Cart(cartStore);
@@ -149,6 +163,10 @@
           <div>Quantity: <span re-field="_quantity"></span></div>
           <!-- TODO: conditional rendering...  -->
           <div re-show="_quantity">Wow how many!</div>
+          <div>
+            
+            <button re-click onclick="CART.change(event.item)">Change for shirt</button>
+          </div>
           <div>
             <!-- Need to use event here so we can use the function in javacript and change its input -->
             <!-- TODO: make the "remove" text reactive; some ideas below -->

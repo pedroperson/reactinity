@@ -4,6 +4,8 @@ Reactinity is a lightweight reactivity framework. It is inspired by HTMX and Sve
 
 The library is still in its idea stage, feel free to submit PRs with your ideas or fixes. I want to keep the minified version as fully cacheable by browsers and under 5kB, so please keep your changes minimal.
 
+One thing that turned out to be cool is that you never lose the pointer, so search is super easy. there is ideally one object per item in the whole code, and we can pass it around and save it everywhere instead of having to use ids and such. the pointer is the id so comparisson are just comparing two ints and its fast af
+
 ## Using it
 
 I'd suggest just copy-pasting the code into your project for now. It is tiny, and not ready for me to spend the time actually publishing it.
@@ -56,4 +58,3 @@ Run the example.html file locally to see it in action! You should see the value 
 - Rename project, Reactinity is hard to say and spell
 - Publish the example online so people can test it out without downloading it
 - Turn this into a usable, downloadable/ importable library that people can actually use without copy pasting
-
