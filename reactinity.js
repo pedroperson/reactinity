@@ -89,12 +89,9 @@ class Reactinity {
           `[iSCream] your re-array is missing a re-template child: "${storeName}" `
         );
 
-      // GET BACK HERE IS WHERE WE DEFINE THE UI THING
-      // , driver = ArrayStoreUISubscriber
+      // Fancy subscribe to respond to fine grained updates
       const sub = new ArrayStoreUISubscriber(parent, this.transforms);
-      console.log("GOING TO PROPERLY SUB TO AN ARRAY STORE", sub);
 
-      console.log("GOING TO PROPERLY SUB TO AN ARRAY STORE", store);
       store.subscribe(sub);
     });
   }
@@ -104,7 +101,6 @@ const storeFunctions = {
   // Change the innerHTML of an element every time the related store changes
   "re-innerhtml": (el, store, preprocess, postprocess, fields) => {
     store.subscribe((val) => {
-      console.log("SUBSCRIBE IN re-innerhtml");
       let v = val;
       // TODO: Maybe we should check if the specific field has changed?
       for (let i = 0; i < fields.length; i++) {
@@ -117,7 +113,6 @@ const storeFunctions = {
   },
   // Edit the store value when its value changes, and change its value when the store changes
   "re-bind": (el, store, preprocess, postprocess) => {
-    console.log("SUBSCRIBE IN re-bind");
     // Update element value at store change
     store.subscribe((val) => {
       const v = preprocess(val);
@@ -178,7 +173,6 @@ class ArrayStore {
       return;
     }
 
-    console.log("fancy subscriber", subscriber);
     this.fancySubscribers.push(subscriber);
     // run the overwrite function immediately
     subscriber.set(this.array);
@@ -268,17 +262,13 @@ class ArrayStore {
 class ArrayStoreUISubscriber {
   constructor(parentElement, transforms) {
     this.parent = parentElement;
-    console.log("parent", this.parent);
     this.template = this.parent.querySelector("[re-template]");
     this.transforms = transforms;
-
-    this.children = [];
   }
 
   append(val) {
     const el = cloneTemplate(val, this.template, this.transforms);
     this.parent.append(el);
-    console.log("should have appended something", el, this.parent);
   }
 
   set(newArray) {
@@ -291,7 +281,6 @@ class ArrayStoreUISubscriber {
         cloneTemplate(val, this.template, this.transforms)
       )
     );
-    console.log("should have overwritten", newArray, this.parent);
   }
 
   updateField(data, field, fn) {

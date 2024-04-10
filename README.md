@@ -58,3 +58,24 @@ Run the example.html file locally to see it in action! You should see the value 
 - Rename project, Reactinity is hard to say and spell
 - Publish the example online so people can test it out without downloading it
 - Turn this into a usable, downloadable/ importable library that people can actually use without copy pasting
+
+- There is a memory leak! Find it by running :
+
+```
+function monkeypress(){
+    const btns = document.querySelectorAll("button");
+    const i = Math.round(Math.random() * (btns.length-1));
+    btns[i].click();
+    console.log("clicked",btns[i]);
+}
+
+const sleep = async (delay) =>new Promise((resolve) => setTimeout(resolve, delay));
+const fn = async function() {
+for (let i = 0 ; i <10000; i++){
+    monkeypress();
+    await sleep(1);
+}}
+fn();
+```
+
+If you take a memory profile before during and after the script runs you wil find a bunch of Detached HTMLButtonElements (about 10,000 of them). I either have a lingering reference to the elements that i am not deleting, need to unsbscribe stuff, or am not properly disposing of the node when removeChild
