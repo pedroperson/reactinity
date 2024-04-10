@@ -1,159 +1,201 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Reactinity - Example 1</title>
-  </head>
-  <body>
-    <section class="my-page-width mt-12">
-      <!-- Import the js code however you want -->
-      <script src="/reactinity.js"></script>
 
-      <!-- Keep the ArrayStore templates from showing from the start. is there are better way to do this ? Maybe we shouldn't care and just do it js asap? -->
-      <style>
-        [re-template] {
-          display: none;
-        }
-      </style>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reactinity - Example 1</title>
+</head>
 
-      <!-- ---------------------------------------------------------------- -->
-      <!-- INITIALIZE REACTINITY ------------------------------------------ -->
-      <!-- ---------------------------------------------------------------- -->
-      <script>
-        const reactinity = new Reactinity();
-        reactinity.defaultInit();
-      </script>
+<body>
+  <section class="my-page-width mt-12">
+    <!-- Import the js code however you want -->
+    <script src="/reactinity.js"></script>
 
-      <!-- ---------------------------------------------------------------- -->
-      <!-- ARRAY EXAMPLES ------------------------------------------------- -->
-      <!-- ---------------------------------------------------------------- -->
+    <!-- Keep the ArrayStore templates from showing from the start. is there are better way to do this ? Maybe we shouldn't care and just do it js asap? -->
+    <style>
+      [re-template] {
+        display: none;
+      }
 
-      <script>
-        const products = [
-          {
-            name: "shirt",
-            price: 10000,
-          },
-          {
-            name: "skirt",
-            price: 20000,
-          },
-          {
-            name: "dress",
-            price: 15000,
-          },
-          {
-            name: "shoes",
-            price: 8000,
-          },
-        ];
+      [re-show]:not(.re-show) {
+        display: none;
+      }
+      [re-show-field]:not(.re-show) {
+        display: none;
+      }
+    </style>
+
+    <!-- ---------------------------------------------------------------- -->
+    <!-- INITIALIZE REACTINITY ------------------------------------------ -->
+    <!-- ---------------------------------------------------------------- -->
+    <script>
+      const reactinity = new Reactinity();
+      reactinity.defaultInit();
+
+      reactinity.useTransform("len>2", (val) => val.length>2);
+      reactinity.useTransform("num>2", (val) => Number(val)>2);
+    </script>
+
+    <!-- ---------------------------------------------------------------- -->
+    <!-- ARRAY EXAMPLES ------------------------------------------------- -->
+    <!-- ---------------------------------------------------------------- -->
+
+    <script>
+      const products = [
+        {
+          name: "shirt",
+          price: 10000,
+        },
+        {
+          name: "skirt",
+          price: 20000,
+          new:true,
+        },
+        {
+          name: "dress",
+          price: 15000,
+        },
+        {
+          name: "shoes",
+          price: 8000,
+        },
+      ];
+
+      // for (let i = 0; i < 10000; i++) {
+      //   products.push({
+      //     name: Math.random().toString(),
+      //     price:  Math.random()*30000,
+      //   });
+      // }
 
 
 
-        class Cart {
-            constructor(arrayStore){
-                this.arrayStore = arrayStore
-            }
-
-            add(product) {
-              const v= this.arrayStore.GETROW(item=>item===product);
-              if (v === undefined) {
-                this.arrayStore.append(Object.assign(product,{_quantity:1}));
-              } else {
-                v.updateField("_quantity",(q)=>q+1);
-              }
-            }
-
-            remove(product) {
-              const row= this.arrayStore.GETROW(item=>item===product);
-              if (row === undefined) return;
-
-              if (row.data._quantity >1){
-                row.updateField("_quantity",(q)=>q-1);
-                return;
-              }
-
-              row.delete();
-            }
-
-            change(product) {
-              const row= this.arrayStore.GETROW(item=>item===product);
-              if (row === undefined) return;
-
-              row.overwrite(Object.assign(products[0],{_quantity:1}));
-            }
+      class Cart {
+        constructor(arrayStore) {
+          this.arrayStore = arrayStore
         }
 
-
-      </script>
-      <script>
-        // The visible products in the page
-        const productStore = reactinity.newArrayStore("products", products);
-        // A list of products in the user's cart
-        const cartStore = reactinity.newArrayStore("cart", []);
-        // Page will have a filter value which we will use to hide certain products from view
-        const filterStore = reactinity.newStore("filter", 0);
-
-        filterStore.subscribe((v) => {
-          productStore.set(products.filter((p, i) => i >= v));
-        });
-
-        let lastCartLength = 0;
-        const newItemInCartFlag = reactinity.newStore("new-item-flag", false);
-        productStore.subscribe(p=>{
-          if (p.length > lastCartLength) {
-            newItemInCartFlag.set(true);
+        add(product) {
+          const v = this.arrayStore.GETROW(item => item === product);
+          if (v === undefined) {
+            this.arrayStore.append(Object.assign(product, { _quantity: 1 }));
+          } else {
+            v.updateField("_quantity", (q) => q + 1);
           }
-          lastCartLength = p.length;
-
-        })
-
-
-        const CART = new Cart(cartStore);
-        
-        // Include your own business logic
-        reactinity.useTransform("dollars", centsToDollarString);
-        reactinity.useTransform("totalCartPrice", (products) => {
-          let totalCents = products.reduce((sum, p) => sum + p.price*(p._quantity || 1), 0);
-          
-          let tax = totalCents * 0.08;
-          
-          return centsToDollarString(totalCents + tax);
-        });
-
-        function centsToDollarString(cents) {
-          const opts = { style: "currency", currency: "USD" };
-          return new Intl.NumberFormat("en-US", opts).format(cents / 100);
         }
 
-      </script>
+        remove(product) {
+          const row = this.arrayStore.GETROW(item => item === product);
+          if (row === undefined) return;
 
-      <div style="margin-top:20px; font-size:2em;">The store:</div>
+          if (row.data._quantity > 1) {
+            row.updateField("_quantity", (q) => q - 1);
+            return;
+          }
 
-      <label for="cars">Filter products:</label>
+          row.delete();
+        }
 
-      <select re-bind="filter" re-transform="number">
-        <option value="0">0</option>
-        <option value="1">1</option>
-        <option value="2">2</option>
-        <option value="3">3</option>
-      </select>
+        change(product) {
+          const row = this.arrayStore.GETROW(item => item === product);
+          if (row === undefined) return;
 
-      <div re-array="products"  style="display:flex; flex-wrap:wrap; gap:10px; margin-top:20px;">
-        <div re-template>
-          <div re-field="name"></div>
-          <div re-field="price" re-transform="dollars"></div>
-          <div>
-            <!-- Need to use event here so we can use the function in javacript and change its input -->
-            <button re-click onclick="CART.add(event.item)">Add to cart</button>
-          </div>
+          row.overwrite(Object.assign(products[0], { _quantity: 1 }));
+        }
+      }
+
+
+    </script>
+    <script>
+      // The visible products in the page
+      const productStore = reactinity.newArrayStore("products", products);
+      // A list of products in the user's cart
+      const cartStore = reactinity.newArrayStore("cart", []);
+      // Page will have a filter value which we will use to hide certain products from view
+      const filterStore = reactinity.newStore("filter", 0);
+
+      filterStore.subscribe((v) => {
+        productStore.set(products.filter((p, i) => i >= v));
+      });
+
+      let lastCartLength = 0;
+      let stupidTImeout = null;
+      const newItemInCartFlag = reactinity.newStore("new-item-flag", false);
+      cartStore.subscribe(p => {
+        const count = p.length ? p.reduce((sum, el) => sum + el._quantity, 0) : 0;
+        if (count > lastCartLength) {
+          newItemInCartFlag.set(true);
+          // Fucking wiht it by setting it back automatically
+          stupidTImeout && window.clearTimeout(stupidTImeout)
+          stupidTImeout = setTimeout(() => newItemInCartFlag.set(false), 1000);
+        }
+        lastCartLength = count;
+      })
+
+
+      const CART = new Cart(cartStore);
+
+      // Include your own business logic
+      reactinity.useTransform("totalCartCount", (products) => {
+        return products.reduce((sum, p) => sum + (p._quantity || 1), 0);
+      });
+      reactinity.useTransform("dollars", centsToDollarString);
+      reactinity.useTransform("totalCartPrice", (products) => {
+        let totalCents = products.reduce((sum, p) => sum + p.price * (p._quantity || 1), 0);
+
+        let tax = totalCents * 0.08;
+
+        return centsToDollarString(totalCents + tax);
+      });
+
+      function centsToDollarString(cents) {
+        const opts = { style: "currency", currency: "USD" };
+        return new Intl.NumberFormat("en-US", opts).format(cents / 100);
+      }
+
+    </script>
+
+
+    <div style="margin-top:20px; font-size:2em;">The store:</div>
+
+    <label for="cars">Filter products:</label>
+
+    <select re-bind="filter" re-transform="number">
+      <option value="0">0</option>
+      <option value="1">1</option>
+      <option value="2">2</option>
+      <option value="3">3</option>
+    </select>
+
+    <div re-array="products" style="display:flex; flex-wrap:wrap; gap:10px; margin-top:20px;">
+      <div re-template>
+        <div  >
+          <span re-field="name"></span>
+          <span re-show-field="new">[NEW]</span>
+        </div>
+
+        <div re-field="price" re-transform="dollars"></div>
+        <div>
+          <!-- Need to use event here so we can use the function in javacript and change its input -->
+          <button re-click onclick="CART.add(event.item)">Add to cart</button>
         </div>
       </div>
+    </div>
+
+    <section re-show="cart" re-transform="length">
+
 
       <div style="margin-top:20px; font-size:2em;">MY CART:</div>
+      <div re-show="new-item-flag">
+        There is a new item
+      </div>
+      <div re-show="cart" re-transform="len>2">
+        There are more than 2 types of items in the cart!
+      </div>
+      
       <div>
-        Item count: <span re-innerhtml="cart" re-transform="length"></span>
+        Item count: <span re-innerhtml="cart" re-transform="totalCartCount"></span>
       </div>
       <div>
         TOTAL: <span re-innerhtml="cart" re-transform="totalCartPrice"></span>
@@ -166,17 +208,21 @@
 
           <div>Quantity: <span re-field="_quantity"></span></div>
 
-          <!-- TODO: conditional rendering...  -->
-          <!-- Im thinking the cleaner way may be to have signal for everyone one of these, and then we force set the css display on subscribe toggle, but that seems like a little bit of work -->
-          <!-- <div re-show="_quantity" or re-show="someBooleanStore">Wow how many!</div> -->
+          <div re-show-field="_quantity" re-transform="num>2">
+            Wow how many!
+          </div>
+
           <div>
             <!-- Need to use event here so we can use the function in javacript and change its input -->
             <!-- TODO: make the "remove" text reactive; some ideas below -->
-            <button re-click onclick="CART.remove(event.item)" re---field="_quantity"  re-transform="(v)=>v?'Remove':'Remove all'" 
-                re-falsy="Remove All">Remove</button>
+            <button re-click onclick="CART.remove(event.item)">
+              Remove
+            </button>
           </div>
         </div>
       </div>
+    </section>
 
-  </body>
+</body>
+
 </html>

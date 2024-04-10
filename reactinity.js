@@ -129,6 +129,22 @@ const storeFunctions = {
       }
     });
   },
+
+  "re-show": (el, store, transform) => {
+    return store.subscribe((val) => {
+      let v = val;
+      if (transform) {
+        v = transform(v);
+      }
+      // Force into a boolean
+      v = !!v;
+      if (v && !el.classList.contains("re-show")) {
+        el.classList.add("re-show");
+      } else if (!v && el.classList.contains("re-show")) {
+        el.classList.remove("re-show");
+      }
+    });
+  },
 };
 
 /**
@@ -294,7 +310,28 @@ class ArrayStoreUISubscriber {
       return el.DIRTYDATA === data;
     });
 
-    el.querySelector(`[re-field="${field}"]`).innerHTML = data[field];
+    const els = el.querySelectorAll(`[re-field="${field}"]`);
+    els.forEach((el) => {
+      el.innerHTML = data[field];
+    });
+
+    // TODO: Implement this later, should work kinda like re-show, but for firelds of an item in an array.
+    // TODO: Need to take transform field into account
+    el.querySelectorAll(`[re-show-field="${field}"]`).forEach((el) => {
+      console.log("elemnt", { el });
+      let transform = el.getAttribute("re-transform");
+      transform = this.transforms[transform];
+
+      let v = data[field];
+      if (transform) v = transform(v);
+      v = !!v;
+      console.log("field", { field, v, transform });
+      if (v && !el.classList.contains("re-show")) {
+        el.classList.add("re-show");
+      } else if (!v && el.classList.contains("re-show")) {
+        el.classList.remove("re-show");
+      }
+    });
   }
 
   deleteRow(data) {
@@ -328,6 +365,21 @@ function cloneTemplate(item, template, transforms) {
 
     const transform = transforms[transName] || ((v) => v);
     el.innerHTML = transform(item[field]);
+  });
+
+  clone.querySelectorAll("[re-show-field").forEach((el) => {
+    const field = el.getAttribute("re-show-field");
+    const transName = el.getAttribute("re-transform");
+    const transform = transforms[transName];
+
+    let v = item[field];
+    if (transform) v = transform(v);
+    v = !!v;
+    if (v && !el.classList.contains("re-show")) {
+      el.classList.add("re-show");
+    } else if (!v && el.classList.contains("re-show")) {
+      el.classList.remove("re-show");
+    }
   });
 
   clone.querySelectorAll("[re-click]").forEach((el) => {
