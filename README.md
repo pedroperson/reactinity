@@ -66,7 +66,7 @@ function monkeypress(){
     const btns = document.querySelectorAll("button");
     const i = Math.round(Math.random() * (btns.length-1));
     btns[i].click();
-    console.log("clicked",btns[i]);
+    // console.log("clicked",btns[i]);
 }
 
 const sleep = async (delay) =>new Promise((resolve) => setTimeout(resolve, delay));

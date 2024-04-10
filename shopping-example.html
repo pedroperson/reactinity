@@ -21,7 +21,6 @@
       <!-- INITIALIZE REACTINITY ------------------------------------------ -->
       <!-- ---------------------------------------------------------------- -->
       <script>
-        // Initialize Reactinity! IDK WHERE THIS SHOULD LIVE!
         const reactinity = new Reactinity();
         reactinity.defaultInit();
       </script>
@@ -136,7 +135,7 @@
         <option value="3">3</option>
       </select>
 
-      <div re-array="products">
+      <div re-array="products"  style="display:flex; flex-wrap:wrap; gap:10px;">
         <div re-template>
           <div re-field="name"></div>
           <div re-field="price" re-transform="dollars"></div>
@@ -155,18 +154,15 @@
         TOTAL: <span re-innerhtml="cart" re-transform="totalCartPrice"></span>
       </div>
 
-      <div re-array="cart">
-        <div re-template>
+      <div re-array="cart" style="display:flex; flex-wrap:wrap; gap:10px;">
+        <div re-template style="border:1px solid green;">
           <div re-field="name"></div>
           <div re-field="price" re-transform="dollars"></div>
 
           <div>Quantity: <span re-field="_quantity"></span></div>
           <!-- TODO: conditional rendering...  -->
+          <!-- Im thinking the cleaner way may be to have signal for everyone one of these, and then we force set the css display on subscribe toggle, but that seems like a little bit of work -->
           <div re-show="_quantity">Wow how many!</div>
-          <div>
-            
-            <button re-click onclick="CART.change(event.item)">Change for shirt</button>
-          </div>
           <div>
             <!-- Need to use event here so we can use the function in javacript and change its input -->
             <!-- TODO: make the "remove" text reactive; some ideas below -->

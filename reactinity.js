@@ -39,13 +39,11 @@ class Reactinity {
         `[iSCream] You are attempting to subscribe to a store that is not in the global store: ${id} `
       );
 
-    let preprocess = (val) => val;
-    // console.log("attachElement", el, tag);
-    let postprocess =
+    let transform =
       this.transforms[el.getAttribute("re-transform")] || ((val) => val);
 
     // Run the element's related storeFunctions to attach it to a store and other listeners
-    fn(el, store, preprocess, postprocess, levels.slice(1));
+    fn(el, store, transform, levels.slice(1));
   }
 
   /** Registers a data transformation function under a specific identifier. This allows you to use your own custom preprocessing to data before it is saved or updated in the store.*/
@@ -77,51 +75,43 @@ class Reactinity {
   attachArrayElements() {
     document.querySelectorAll("[re-array]").forEach((parent) => {
       const storeName = parent.getAttribute("re-array");
-      const store = this.STORES[storeName];
-      if (!store)
+      const arrayStore = this.STORES[storeName];
+      if (!arrayStore)
         throw new Error(
           `[iSCream] You are attempting to subscribe to an ArrayStore that does not exist: "${storeName}" `
-        );
-
-      const template = parent.querySelector("[re-template]");
-      if (!template)
-        throw new Error(
-          `[iSCream] your re-array is missing a re-template child: "${storeName}" `
         );
 
       // Fancy subscribe to respond to fine grained updates
       const sub = new ArrayStoreUISubscriber(parent, this.transforms);
 
-      store.subscribe(sub);
+      arrayStore.subscribe(sub);
     });
   }
 }
 /** Define the key functionality of the library, keyed by the attribute on the element to be updated. Reactinity will look for elements with the attributes in each of the keys and subscribe them accordingly */
 const storeFunctions = {
   // Change the innerHTML of an element every time the related store changes
-  "re-innerhtml": (el, store, preprocess, postprocess, fields) => {
+  "re-innerhtml": (el, store, transform, fields) => {
     store.subscribe((val) => {
       let v = val;
       // TODO: Maybe we should check if the specific field has changed?
       for (let i = 0; i < fields.length; i++) {
-        // TODO: check for property existance and print pretty error if its doesnt!
         v = v[fields[i]];
       }
-      const process = postprocess || preprocess;
-      el.innerHTML = process(v);
+
+      el.innerHTML = transform(v);
     });
   },
   // Edit the store value when its value changes, and change its value when the store changes
-  "re-bind": (el, store, preprocess, postprocess) => {
+  "re-bind": (el, store, transform) => {
     // Update element value at store change
     store.subscribe((val) => {
-      const v = preprocess(val);
-      if (el.value !== v) {
-        el.value = v;
+      if (el.value !== val) {
+        el.value = val;
       }
     });
     // Update the store at element input
-    el.addEventListener("input", (e) => store.set(postprocess(e.target.value)));
+    el.addEventListener("input", (e) => store.set(transform(el.value)));
   },
 };
 
