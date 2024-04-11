@@ -22,100 +22,8 @@
       <!-- ---------------------------------------------------------------- -->
       <script>
         const reactinity = new Reactinity();
-
-        // Define your own data transforms to be used anywhere in the UI.
-        reactinity.useTransform("number", (val) => Number(val));
-        reactinity.useTransform("length", (val) => val.length);
-        reactinity.useTransform("mmddyy", (unix) =>
-          new Date(unix).toLocaleDateString()
-        );
-        // Include your own business logic
-        reactinity.useTransform("dollars", toDollars);
-        reactinity.useTransform("totalCartPrice", (products) => {
-          let totalCents = products.reduce((sum, p) => sum + p.price, 0);
-          let tax = totalCents * 0.1;
-          return toDollars(totalCents + tax);
-        });
-
-        function toDollars(cents) {
-          const opts = { style: "currency", currency: "USD" };
-          return new Intl.NumberFormat("en-US", opts).format(cents / 100);
-        }
-
-        // Turn DOM elements reactive
-        // TODO: Should we move this to reactinity constructor? idk user would lose choice of when to run it... but save a lot of hassle too, could maybe have a different init with it and without it
-        window.addEventListener("DOMContentLoaded", () => {
-          reactinity.attachAllElements();
-          reactinity.attachArrayElements();
-        });
+        reactinity.defaultInit();
       </script>
-
-      <!-- ---------------------------------------------------------------- -->
-      <!-- ARRAY EXAMPLES ------------------------------------------------- -->
-      <!-- ---------------------------------------------------------------- -->
-
-      <script>
-        const products = [
-          {
-            name: "shirt",
-            price: 10000,
-          },
-          {
-            name: "skirt",
-            price: 20000,
-          },
-          {
-            name: "dress",
-            price: 15000,
-          },
-        ];
-        const productStore = reactinity.newStore("products", products);
-
-        const cartStore = reactinity.newStore("cart", []);
-
-        function addToCart(event) {
-          console.log("[called] addToCart", event, event.item);
-          // TODO: use array stoer here
-          // Something like this, maybe an append would be more appropriate
-          cartStore.update((v) => {
-            v.push(event.item);
-            return v;
-          });
-        }
-
-        function removeFromCart(event) {
-          cartStore.update((pp) =>
-            pp.filter((p) => p.name !== event.item.name)
-          );
-        }
-      </script>
-
-      <div re-array="products">
-        <div re-template>
-          <div re-field="name"></div>
-          <div re-field="price" re-pretty="dollars"></div>
-          <div>
-            <!-- Need to use event here so we can use the function in javacript and change its input -->
-            <button re-click onclick="addToCart(event)">Add to cart</button>
-          </div>
-        </div>
-      </div>
-
-      <div>MY CART:</div>
-      <div>Item count: <span re-innerhtml="cart" re-post="length"></span></div>
-      <div>
-        TOTAL: <span re-innerhtml="cart" re-post="totalCartPrice"></span>
-      </div>
-      <div re-array="cart">
-        <div re-template>
-          <div re-field="name"></div>
-          <div re-field="price" re-pretty="dollars"></div>
-          <div>
-            <!-- Need to use event here so we can use the function in javacript and change its input -->
-            <button re-click onclick="removeFromCart(event)">Remove</button>
-          </div>
-        </div>
-      </div>
 
       <!-- ---------------------------------------------------------------- -->
       <!-- BASIC EXAMPLES ------------------------------------------------- -->
@@ -157,14 +65,14 @@
       <div>Reactive count: <span re-innerhtml="count"></span></div>
       <button onclick="countUp()">Add to cart</button>
       <button onclick="reset()">Reset</button>
-      <input type="number" re-bind="count" re-post="number" />
+      <input type="number" re-bind="count" re-transform="number" />
       <div>Count plus 100: <span re-innerHTML="derived"></span></div>
 
       <div style="border: 1px solid black; padding: 1em">
         <div>Name: <span re-innerhtml="user.name"></span></div>
         <div>Age: <span re-innerhtml="user.age"></span></div>
         <div>
-          Joined: <span re-innerhtml="user.joined" re-pre="mmddyy"></span>
+          Joined: <span re-innerhtml="user.joined" re-transform="mmddyy"></span>
         </div>
         <div>Child name: <span re-innerhtml="user.child.name"></span></div>
 
