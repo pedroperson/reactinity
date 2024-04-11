@@ -35,6 +35,9 @@
 
       reactinity.useTransform("len>2", (val) => val.length>2);
       reactinity.useTransform("num>2", (val) => Number(val)>2);
+      reactinity.useTransform("text_removeAll_removeOne", (val) =>
+        Number(val)>1? "Remove one": "Remove all"
+      );
     </script>
 
     <!-- ---------------------------------------------------------------- -->
@@ -62,7 +65,7 @@
         },
       ];
 
-      // for (let i = 0; i < 10000; i++) {
+      // for (let i = 0; i < 15; i++) {
       //   products.push({
       //     name: Math.random().toString(),
       //     price:  Math.random()*30000,
@@ -168,16 +171,21 @@
       <option value="3">3</option>
     </select>
 
+    <!-- Here we have an example of using an ArrayStore to render multiple objects in the same format. Here we have a list of products in flex row. We render a clone of the "re-template" for every object in the ArrayStore, filled with its data following the "re-field", "re-show-field", and "re-click" directives in your elements -->
     <div re-array="products" style="display:flex; flex-wrap:wrap; gap:10px; margin-top:20px;">
       <div re-template>
-        <div  >
+        <div>
+          <!-- You can render a field of the object being display by using the "re-field" attribute -->
           <span re-field="name"></span>
+          <!-- To conditionally render an element, use a field as a boolean flag -->
           <span re-show-field="new">[NEW]</span>
         </div>
 
+        <!-- Apply transforms to the field being targeted. Reactinity already comes with some basic transforms out of the box, but you can also define your own using reactinity.useTransform(). -->
         <div re-field="price" re-transform="dollars"></div>
+
         <div>
-          <!-- Need to use event here so we can use the function in javacript and change its input -->
+          <!-- Add the object's data to the event's "item" field by tagging the element with a "re-click" attribute. That makes attaching to the click event to the correct data source easy, no more searching through some attached data-id, or needing to keep references to DOM elements  -->
           <button re-click onclick="CART.add(event.item)">Add to cart</button>
         </div>
       </div>
@@ -208,14 +216,14 @@
 
           <div>Quantity: <span re-field="_quantity"></span></div>
 
+          <!-- Conditional display -->
           <div re-show-field="_quantity" re-transform="num>2">
             Wow how many!
           </div>
 
           <div>
-            <!-- Need to use event here so we can use the function in javacript and change its input -->
-            <!-- TODO: make the "remove" text reactive; some ideas below -->
-            <button re-click onclick="CART.remove(event.item)">
+            <!-- Click passing along the item related to the button -->
+            <button re-click onclick="CART.remove(event.item)" re-field="_quantity" re-transform="text_removeAll_removeOne" >
               Remove
             </button>
           </div>

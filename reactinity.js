@@ -310,25 +310,29 @@ class ArrayStoreUISubscriber {
       return el.DIRTYDATA === data;
     });
 
+    const transformWithElement = (v, el) => {
+      const transform = this.transforms[el.getAttribute("re-transform")];
+      if (transform) return transform(v);
+      return v;
+    };
+
     const els = el.querySelectorAll(`[re-field="${field}"]`);
     els.forEach((el) => {
-      el.innerHTML = data[field];
+      let v = transformWithElement(data[field], el);
+      if (v !== el.innerHTML) {
+        el.innerHTML = v;
+      }
     });
 
-    // TODO: Implement this later, should work kinda like re-show, but for firelds of an item in an array.
-    // TODO: Need to take transform field into account
     el.querySelectorAll(`[re-show-field="${field}"]`).forEach((el) => {
-      console.log("elemnt", { el });
-      let transform = el.getAttribute("re-transform");
-      transform = this.transforms[transform];
-
-      let v = data[field];
-      if (transform) v = transform(v);
+      let v = transformWithElement(data[field], el);
+      // Coerse into a boolean to avoid some javascript edge cases
       v = !!v;
-      console.log("field", { field, v, transform });
-      if (v && !el.classList.contains("re-show")) {
+
+      const isShowing = el.classList.contains("re-show");
+      if (v && !isShowing) {
         el.classList.add("re-show");
-      } else if (!v && el.classList.contains("re-show")) {
+      } else if (!v && isShowing) {
         el.classList.remove("re-show");
       }
     });
@@ -357,6 +361,7 @@ function cloneTemplate(item, template, transforms) {
   const clone = template.cloneNode(true);
   clone.removeAttribute("re-template");
 
+  // We will use the DIRTYDATA field to find the this element later. In a way we are using the pointer value as the item/element id. So ideally we don't need any extra memory other than our extra pointer value in the clone element.
   Object.assign(clone, { DIRTYDATA: item });
 
   clone.querySelectorAll("[re-field]").forEach((el) => {

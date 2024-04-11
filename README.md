@@ -59,7 +59,14 @@ Run the example.html file locally to see it in action! You should see the value 
 - Publish the example online so people can test it out without downloading it
 - Turn this into a usable, downloadable/ importable library that people can actually use without copy pasting
 
-- There is a memory leak! Find it by running :
+## Ideas? idk
+
+- if there is a whay to check if an element is being diplayed, we can save the updates for when it is ? Like if the cart list is hidden, can we hold off on the dom updates until it is not? Looks like you can with el.checkVisibility(), but then we need extra memory to store the state while we wait. but since its just the value we are going to add to the dom anyway it should be ok. so what would htat lok like?
+  when an update to the dom comes in we check ofr visibility (what about those we have have hidden and show now be shown?). if not visible we store the value and the element in a queue. then when that elment becomes visible is there a cheap way to check this? maybe since we control the hide and show we have send a signal out of something, but i think intersection observer is way too slow.
+
+## Scripts
+
+Running this in the console helped me find memory leaks.
 
 ```
 function monkeypress(){
@@ -79,5 +86,3 @@ for (let i = 0 ; i <loops; i++){
 }}
 fn();
 ```
-
-If you take a memory profile before during and after the script runs you wil find a bunch of Detached HTMLButtonElements (about 10,000 of them). I either have a lingering reference to the elements that i am not deleting, need to unsbscribe stuff, or am not properly disposing of the node when removeChild
