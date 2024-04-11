@@ -372,7 +372,7 @@ function cloneTemplate(item, template, transforms) {
     el.innerHTML = transform(item[field]);
   });
 
-  clone.querySelectorAll("[re-show-field").forEach((el) => {
+  clone.querySelectorAll("[re-show-field]").forEach((el) => {
     const field = el.getAttribute("re-show-field");
     const transName = el.getAttribute("re-transform");
     const transform = transforms[transName];

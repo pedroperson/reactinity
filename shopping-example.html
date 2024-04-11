@@ -17,7 +17,6 @@
       [re-template] {
         display: none;
       }
-
       [re-show]:not(.re-show) {
         display: none;
       }
@@ -35,6 +34,7 @@
 
       reactinity.useTransform("len>2", (val) => val.length>2);
       reactinity.useTransform("num>2", (val) => Number(val)>2);
+      reactinity.useTransform("num>4", (val) => Number(val)>4);
       reactinity.useTransform("text_removeAll_removeOne", (val) =>
         Number(val)>1? "Remove one": "Remove all"
       );
@@ -209,17 +209,49 @@
         TOTAL: <span re-innerhtml="cart" re-transform="totalCartPrice"></span>
       </div>
 
+      <style>
+        .red {
+          border:1px solid red;
+          color:red;
+
+        }
+      </style>
+      
       <div re-array="cart" style="display:flex; flex-wrap:wrap; gap:10px;">
         <div re-template style="border:1px solid green;">
           <div re-field="name"></div>
           <div re-field="price" re-transform="dollars"></div>
 
-          <div>Quantity: <span re-field="_quantity"></span></div>
-
-          <!-- Conditional display -->
-          <div re-show-field="_quantity" re-transform="num>2">
-            Wow how many!
+          <div>Quantity: <span re-field="_quantity"></span>
+          
+            <!-- Conditional display -->
+            <!-- TODO: add a way to toggle a class or style or something "re-class='className,field,transform'" 
+              i need the className, field and transform but those can different from the current transform. can i trust commas? maybe i just need re-class re-class-field re-class-transform?  -->
+  
+              <!-- If we want the commas, we will need a superfast parsing algo.
+                Im thinking we only need to keep track of our oldest ancestor. cus as long as that is still open we are not back to the root context. There may be things like parentheses inside parenthesis.
+                WEll this isnt the question at all is it... the question is when does comma not count as a comma.........
+                I can't really solve that meaningfully so we should just limite fields and transform names from containing commas. so the validation is just split(",") ; .length ==3  (expensive but just testing for now anyway, can easily be turned into a loop)
+                const divider =",";
+                const ancestralSymbols = `([{"'`;
+                const closingSymbols = `)]}"'`;
+  
+                let oldestAncestor = null;
+                let ancestor count
+                for c in string{
+  
+                }
+              -->
+              <span 
+              re-show-field="_quantity" re-transform="num>2" 
+              re-class="red" re-class-field="_quantity" re-class-transform="num>4" 
+  
+              re-show-field2="_quantity, num>2" 
+              re-class="red, _quantity, num>4">
+              Wow !
+            </span>
           </div>
+
 
           <div>
             <!-- Click passing along the item related to the button -->
