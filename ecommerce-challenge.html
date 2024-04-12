@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Reactinity - Example 2</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+
+  <body>
+    <!-- Import the js code however you want -->
+    <script src="/reactinity.js"></script>
+
+    <!-- Keep the ArrayStore templates from showing from the start. is there are better way to do this ? Maybe we shouldn't care and just do it js asap? -->
+    <style>
+      [re-template] {
+        display: none;
+      }
+      [re-show]:not(.re-show) {
+        display: none;
+      }
+      [re-show-field]:not(.re-show) {
+        display: none;
+      }
+    </style>
+
+    <!-- ---------------------------------------------------------------- -->
+    <!-- INITIALIZE REACTINITY ------------------------------------------ -->
+    <!-- ---------------------------------------------------------------- -->
+    <script>
+      const reactinity = new Reactinity();
+      reactinity.defaultInit();
+
+      reactinity.useTransform("len>2", (val) => val.length > 2);
+      reactinity.useTransform("num>2", (val) => Number(val) > 2);
+      reactinity.useTransform("num>4", (val) => Number(val) > 4);
+      reactinity.useTransform("text_removeAll_removeOne", (val) =>
+        Number(val) > 1 ? "Remove one" : "Remove all"
+      );
+    </script>
+
+    <!-- THE ANNOYING COOKIE BANNER
+        controlling the visibility of the banner with a boolean store  -->
+    <script>
+      const cookieBanner = reactinity.newStore("cookie", true);
+    </script>
+
+    <!-- TODO: add aria labels -->
+    <section
+      class="fixed bottom-0 inset-x-0 bg-white text-black flex justify-between items-center p-4 border border-sky-500 flex z-30"
+      re-show="cookie"
+    >
+      <div class="w-full flex justify-between items-center">
+        <div>
+          <p>Standard text about how we are using your cookies.</p>
+        </div>
+
+        <div class="flex gap-4">
+          <button
+            class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+            onclick="cookieBanner.set(false)"
+          >
+            Accept
+          </button>
+          <button
+            class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded"
+            onclick="cookieBanner.set(false)"
+          >
+            X
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Page of products -->
+
+    <script>
+      const products = [
+        {
+          name: "shirt",
+          price: 10000,
+          country: "USA",
+        },
+        {
+          name: "skirt",
+          price: 20000,
+          new: true,
+          country: "China",
+        },
+        {
+          name: "dress",
+          price: 15000,
+          country: "Brazil",
+        },
+        {
+          name: "shoes",
+          price: 8000,
+          country: "Uruguay",
+        },
+      ];
+
+      const productsStore = reactinity.newArrayStore("products", products);
+
+      reactinity.useTransform("dollars", (cents) => {
+        const opts = { style: "currency", currency: "USD" };
+        return new Intl.NumberFormat("en-US", opts).format(cents / 100);
+      });
+    </script>
+    <style>
+      .custom-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      }
+    </style>
+
+    <div re-array="products" class="custom-grid gap-4">
+      <!-- TODO: Need to handle case where re-template also has re-click and such -->
+      <div re-template class="border border-black p-4 w-full flex-1">
+        <!-- TODO: re-src is not supported yet -->
+
+        <div class="relative w-full h-48">
+          <img
+            src="https://via.placeholder.com/150"
+            alt="Product Image"
+            class="absolute inset-0 w-full h-full object-cover"
+          />
+        </div>
+        <!-- Product Details -->
+        <div class="flex justify-between mt-4">
+          <div>
+            <h3 class="font-bold" re-field="name"></h3>
+            <div re-field="country"></div>
+          </div>
+          <div
+            class="font-bold text-lg"
+            re-field="price"
+            re-transform="dollars"
+          >
+            $19.99
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

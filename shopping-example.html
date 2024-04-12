@@ -194,10 +194,8 @@
     <section re-show="cart" re-transform="length">
 
 
-      <div style="margin-top:20px; font-size:2em;">MY CART:</div>
-      <div re-show="new-item-flag">
-        There is a new item
-      </div>
+      <div style="margin-top:20px; font-size:2em;">MY CART:<span re-show="new-item-flag">[NEW]</span></div>
+      
       <div re-show="cart" re-transform="len>2">
         There are more than 2 types of items in the cart!
       </div>
@@ -244,10 +242,8 @@
               -->
               <span 
               re-show-field="_quantity" re-transform="num>2" 
-              re-class="red" re-class-field="_quantity" re-class-transform="num>4" 
-  
               re-show-field2="_quantity, num>2" 
-              re-class="red, _quantity, num>4">
+              re-class-field="red, _quantity, num>4">
               Wow !
             </span>
           </div>
@@ -261,6 +257,52 @@
           </div>
         </div>
       </div>
+    </section>
+
+    <!-- FORM EXAMPLE -->
+    <script>
+      let userS = reactinity.newStore("user",{
+        name:"Philip jambles",
+        age: 14,
+        mother:{
+          name:"Jannice Jambles",
+          age:44,
+        }
+      })
+
+      function submitUserData(event) {
+        event.preventDefault();
+        console.log('submit event',event,event.reData)
+        userS.set(event.reData)
+      }
+
+      function handleOnChange(event){
+        console.log("Handle on change", {event});
+      }
+    </script>
+    <section>
+      <div re-innerhtml="user.name"></div>
+      <div re-innerhtml="user.age"></div>
+      <form re-form="user" onsubmit="submitUserData(event)" onchange="handleOnChange(event)">
+        <div>
+          <label for="">Name:</label>
+          <input type="text" re-value="_.name" placeholder="name">
+        </div>
+
+        <div>
+          <label for="">Age:</label>
+          <input type="number" re-value="_.age, number" placeholder="Age">
+        </div>
+
+        <!-- Checkbox -->
+        <!-- <select></select> -->
+
+        <div>
+          <button type="submit">Submit</button>
+        </div>
+
+      </form>
+
     </section>
 
 </body>
