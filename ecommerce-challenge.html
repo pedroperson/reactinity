@@ -30,14 +30,29 @@
     <script>
       const reactinity = new Reactinity();
       reactinity.defaultInit();
-
-      reactinity.useTransform("len>2", (val) => val.length > 2);
-      reactinity.useTransform("num>2", (val) => Number(val) > 2);
-      reactinity.useTransform("num>4", (val) => Number(val) > 4);
-      reactinity.useTransform("text_removeAll_removeOne", (val) =>
-        Number(val) > 1 ? "Remove one" : "Remove all"
-      );
     </script>
+
+    <!-- THE HEADER -->
+    <header class="sticky top-0 w-full bg-white z-40">
+      <nav class="p-4 flex justify-between items-center gap-4">
+        <a
+          href="/"
+          class="font-bold text-lg"
+          style="font-family: 'Helvetica', sans-serif"
+        >
+          HOME
+        </a>
+
+        <!-- Navigation links -->
+        <div class="flex gap-4 items-center">
+          <a href="/about" class="text-lg">About</a>
+          <a href="/products" class="text-lg">Products</a>
+          <button class="bg-blue-500 text-white px-3 py-2 rounded-full">
+            cart
+          </button>
+        </div>
+      </nav>
+    </header>
 
     <!-- THE ANNOYING COOKIE BANNER
         controlling the visibility of the banner with a boolean store  -->
@@ -113,33 +128,57 @@
       }
     </style>
 
-    <div re-array="products" class="custom-grid gap-4">
-      <!-- TODO: Need to handle case where re-template also has re-click and such -->
-      <div re-template class="border border-black p-4 w-full flex-1">
-        <!-- TODO: re-src is not supported yet -->
+    <section>
+      <div><h2 class="font-bold text-xlg">Products</h2></div>
+      <!-- TODO: -->
+      <div>Filters</div>
+      <!-- TODO: -->
+      <div>Sort by</div>
 
-        <div class="relative w-full h-48">
-          <img
-            src="https://via.placeholder.com/150"
-            alt="Product Image"
-            class="absolute inset-0 w-full h-full object-cover"
-          />
-        </div>
-        <!-- Product Details -->
-        <div class="flex justify-between mt-4">
-          <div>
-            <h3 class="font-bold" re-field="name"></h3>
-            <div re-field="country"></div>
+      <div re-array="products" class="custom-grid gap-4">
+        <!-- TODO: Need to handle case where re-template also has re-click and such -->
+        <div re-template class="border border-black p-4 w-full flex-1">
+          <!-- TODO: re-src is not supported yet -->
+
+          <div class="relative w-full h-48">
+            <img
+              src="https://via.placeholder.com/150"
+              alt="Product Image"
+              class="absolute inset-0 w-full h-full object-cover"
+            />
           </div>
-          <div
-            class="font-bold text-lg"
-            re-field="price"
-            re-transform="dollars"
-          >
-            $19.99
+
+          <div class="flex justify-between mt-4">
+            <div>
+              <h3 class="font-bold" re-field="name"></h3>
+              <div re-field="country"></div>
+            </div>
+            <div
+              class="font-bold text-lg"
+              re-field="price"
+              re-transform="dollars"
+            >
+              $19.99
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </section>
+
+    <!-- THE FOOTER -->
+
+    <footer class="bg-blue-900 text-white p-12 mt-24">
+      <div class="flex flex-wrap justify-between max-w-4xl mx-auto">
+        <!-- First Column -->
+        <div class="w-1/2 p-2">
+          <a href="/" class="text-sm">HOME</a>
+        </div>
+        <!-- Second Column -->
+        <div class="w-1/2 p-2 flex flex-col gap-2">
+          <a href="/about" class="text-sm">About</a>
+          <a href="/products" class="text-sm">Products</a>
+        </div>
+      </div>
+    </footer>
   </body>
 </html>
