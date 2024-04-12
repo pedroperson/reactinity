@@ -145,6 +145,63 @@ const storeFunctions = {
       }
     });
   },
+  // TODO: This is not done yet!
+  "re-form": (el, store, transform) => {
+    // TODO: SHOULD WE SUBSCRIBE TO THE STORE and update the form data accordingly? that sounds a little confusing but may be necessary. imagine multiple forms in a page showing the same field. w would need to update it. can update it only if havent changed it yet, cus maybe we are in the middle of filling out a form and dont want it ot get overwritten
+
+    // Start the form data by cloning the object so we can safely modify it in the form fields
+    // TODO: maybe we should start out not even cloning it, and the nif it changes we toggle a flag and clone it to change it.
+    const formData = structuredClone(store.value);
+    // TODO: ShOuld we highjack the onChange as well so that users can see everytime the form changes?
+    // TODO: I think it could be useful to have a way to find out if a value has changed
+    // highjack on submit
+    const original = el.onsubmit;
+    el.onsubmit = null;
+    el.removeAttribute("onsubmit");
+    // Now we write our event customization layer so that the user has easy access to the item in the array related to the button being clicked
+    el.addEventListener("submit", (event) => {
+      event = Object.assign(event, { reData: formData });
+      original(event);
+    });
+
+    // listen to values, set defaults
+    const updateField = (field) => (e) => {
+      // TODO: transform this value first, but need access to all the transforms or to pass the transform into the element and read it from it, idk whats worse
+      let v = e.target.value;
+      if (formData[field] !== v) {
+        formData[field] = v;
+      }
+      // TODO: check things like "checked" for checkboxes, there is a lot of work to be done here, but its enough for the text thingy
+    };
+
+    let attributeName = "re-value";
+
+    let tag = "[" + attributeName + "^=_]"; // starts with _
+    const elements = document.querySelectorAll(tag);
+
+    elements.forEach((formElement) => {
+      let fieldName = formElement.getAttribute(attributeName);
+      const prefix = "_.";
+      if (!fieldName.startsWith(prefix)) throw (`invalid shit`, fieldName);
+
+      const firstComma = fieldName.indexOf(",");
+      fieldName = fieldName.slice(
+        prefix.length,
+        firstComma !== -1 ? firstComma : fieldName.length
+      );
+
+      const update = updateField(fieldName);
+      // Update now!
+      // TODO: transform this value first, but need access to all the transforms or to pass the transform into the element and read it from it, idk whats worse
+      formElement.value = formData[fieldName];
+      // Update when anything in the form potentially changes
+      formElement.addEventListener("input", update);
+      formElement.addEventListener("change", update);
+      formElement.addEventListener("click", update);
+      formElement.addEventListener("keyup", update);
+      formElement.addEventListener("paste", update);
+    });
+  },
 };
 
 /**
@@ -336,6 +393,14 @@ class ArrayStoreUISubscriber {
         el.classList.remove("re-show");
       }
     });
+
+    el.querySelectorAll(`[re-class-field]`).forEach((el) => {
+      if (field !== el.getAttribute("re-class-field").split(",")[1].trim()) {
+        console.log("looking at the wrong class field");
+        return;
+      }
+      updateClass(el, data, this.transforms);
+    });
   }
 
   deleteRow(data) {
@@ -387,6 +452,10 @@ function cloneTemplate(item, template, transforms) {
     }
   });
 
+  clone.querySelectorAll("[re-class-field]").forEach((el) => {
+    updateClass(el, item, transforms);
+  });
+
   clone.querySelectorAll("[re-click]").forEach((el) => {
     // Hijack the click behavior. We do this to allow the user to use good old html and then we come in and add the item data to the click event to make that easy-peasy
     const original = el.onclick;
@@ -400,4 +469,24 @@ function cloneTemplate(item, template, transforms) {
   });
 
   return clone;
+}
+
+function updateClass(el, item, allTransforms) {
+  const attr = el.getAttribute("re-class-field");
+  const fields = attr.split(",").map((s) => s.trim());
+
+  if (fields.length < 3)
+    throw `invalid class field format "${attr}". Expected "className,field,transforms".`;
+  const [className, field, ...transforms] = fields;
+  let v = item[field];
+  if (transforms && transforms.length > 0)
+    transforms.forEach((transform) => {
+      v = allTransforms[transform](v);
+    });
+  v = !!v;
+  if (v && !el.classList.contains(className)) {
+    el.classList.add(className);
+  } else if (!v && el.classList.contains(className)) {
+    el.classList.remove(className);
+  }
 }
