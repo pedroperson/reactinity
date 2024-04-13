@@ -468,6 +468,19 @@ function cloneTemplate(item, template, transforms) {
     });
   });
 
+  console.log("arrs?", clone.hasAttribute("re-click"));
+  if (clone.hasAttribute("re-click")) {
+    const original = clone.onclick;
+    clone.onclick = null;
+    clone.removeAttribute("onclick");
+    // Now we write our event customization layer so that the user has easy access to the item in the array related to the button being clicked
+    clone.addEventListener("click", (event) => {
+      console.log("clicked", item);
+      event = Object.assign(event, { item });
+      original(event);
+    });
+  }
+
   return clone;
 }
 

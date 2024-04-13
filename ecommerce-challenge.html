@@ -47,7 +47,10 @@
         <div class="flex gap-4 items-center">
           <a href="/about" class="text-lg">About</a>
           <a href="/products" class="text-lg">Products</a>
-          <button class="bg-blue-500 text-white px-3 py-2 rounded-full">
+          <button
+            class="bg-blue-500 text-white px-3 py-2 rounded-full"
+            onclick="showCartStore.set(true)"
+          >
             cart
           </button>
         </div>
@@ -112,6 +115,11 @@
           price: 8000,
           country: "Uruguay",
         },
+        {
+          name: "socks",
+          price: 1000,
+          country: "Uruguay",
+        },
       ];
 
       const productsStore = reactinity.newArrayStore("products", products);
@@ -137,10 +145,14 @@
 
       <div re-array="products" class="custom-grid gap-4">
         <!-- TODO: Need to handle case where re-template also has re-click and such -->
-        <div re-template class="border border-black p-4 w-full flex-1">
-          <!-- TODO: re-src is not supported yet -->
-
+        <button
+          re-template
+          re-click
+          onclick="cart.add(event.item)"
+          class="border border-black p-4 w-full flex-1"
+        >
           <div class="relative w-full h-48">
+            <!-- TODO: re-src is not supported yet -->
             <img
               src="https://via.placeholder.com/150"
               alt="Product Image"
@@ -157,16 +169,146 @@
               class="font-bold text-lg"
               re-field="price"
               re-transform="dollars"
-            >
-              $19.99
-            </div>
+            ></div>
           </div>
-        </div>
+        </button>
       </div>
     </section>
 
-    <!-- THE FOOTER -->
+    <!-- THE CART -->
+    <script>
+      // Include your own business logic
+      reactinity.useTransform("totalCartCount", (products) => {
+        return products.reduce((sum, p) => sum + (p._quantity || 1), 0);
+      });
+      reactinity.useTransform("totalCartPrice", (products) => {
+        let totalCents = products.reduce(
+          (sum, p) => sum + p.price * (p._quantity || 1),
+          0
+        );
 
+        let tax = totalCents * 0.08;
+
+        const opts = { style: "currency", currency: "USD" };
+        return new Intl.NumberFormat("en-US", opts).format(
+          (totalCents + tax) / 100
+        );
+      });
+
+      class Cart {
+        constructor(arrayStore) {
+          this.arrayStore = arrayStore;
+        }
+
+        add(product) {
+          const v = this.arrayStore.GETROW((item) => item === product);
+          if (v === undefined) {
+            this.arrayStore.append(Object.assign(product, { _quantity: 1 }));
+          } else {
+            v.updateField("_quantity", (q) => q + 1);
+          }
+        }
+
+        remove(product) {
+          const row = this.arrayStore.GETROW((item) => item === product);
+          if (row === undefined) return;
+
+          if (row.data._quantity > 1) {
+            row.updateField("_quantity", (q) => q - 1);
+            return;
+          }
+
+          row.delete();
+        }
+
+        removeAll(product) {
+          const row = this.arrayStore.GETROW((item) => item === product);
+          if (row === undefined) return;
+          row.delete();
+        }
+      }
+
+      const showCartStore = reactinity.newArrayStore("showCart", false);
+      const cartStore = reactinity.newArrayStore("cart", []);
+      const cart = new Cart(cartStore);
+
+      // Close the cart if user empties it
+      cartStore.subscribe((pp) => pp.length === 0 && showCartStore.set(false));
+    </script>
+
+    <section
+      class="fixed right-0 top-0 w-64 h-screen overflow-auto bg-white border-l-4 border-red-500 p-4 z-40"
+      re-show="showCart"
+    >
+      <!-- Cart Title -->
+      <div class="text-lg font-bold mb-4">
+        Your cart
+        <span
+          class="text-sm font-normal"
+          re-innerhtml="cart"
+          re-transform="totalCartCount"
+        ></span>
+      </div>
+
+      <div>
+        <button
+          class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded"
+          onclick="showCartStore.set(false)"
+        >
+          X
+        </button>
+      </div>
+
+      <!-- Product List -->
+      <ul re-array="cart">
+        <li re-template class="flex items-center justify-between mb-4">
+          <!-- Product Image -->
+          <!-- TODO: re-src -->
+          <img
+            src="https://via.placeholder.com/40"
+            alt="Product Image"
+            class="w-10 h-10 mr-2"
+          />
+
+          <!-- Product Details -->
+          <div class="flex-grow">
+            <div class="font-bold" re-field="name"></div>
+            <div class="text-xs text-gray-500" re-field="country"></div>
+          </div>
+
+          <!-- Quantity Controls -->
+          <div class="flex flex-col items-center">
+            <button
+              class="mb-1 px-2 py-1 text-lg"
+              re-click
+              onclick="cart.add(event.item)"
+            >
+              +
+            </button>
+            <span class="font-bold text-sm" re-field="_quantity">1</span>
+            <button
+              class="mt-1 px-2 py-1 text-lg"
+              re-click
+              onclick="cart.remove(event.item)"
+            >
+              -
+            </button>
+          </div>
+
+          <!-- Remove Button -->
+          <button
+            class="ml-4 text-red-500 text-sm"
+            re-click
+            onclick="cart.removeAll(event.item)"
+          >
+            Remove
+          </button>
+        </li>
+        <!-- Add additional products here -->
+      </ul>
+    </section>
+
+    <!-- THE FOOTER -->
     <footer class="bg-blue-900 text-white p-12 mt-24">
       <div class="flex flex-wrap justify-between max-w-4xl mx-auto">
         <!-- First Column -->
