@@ -622,7 +622,9 @@ function listenToValue(el, store, transforms, attr) {
       // Perform all transforms sequentially
       walkWord(
         tag,
-        (field) => transforms[field] && (v = transforms[field](v)),
+        (field) => {
+          if (transforms[field]) v = transforms[field](v);
+        },
         ",",
         firstComma + 1,
         tag.length
@@ -670,6 +672,7 @@ function readField(obj, fieldString, ignoreFirst, transforms) {
   let firstComma = fieldString.indexOf(",");
   if (firstComma === -1) firstComma = fieldString.length;
 
+  // Get the value
   // The first parameter find the data node by doing down the fields in the data object
   walkWord(
     fieldString,
@@ -699,6 +702,23 @@ function readField(obj, fieldString, ignoreFirst, transforms) {
   );
 
   return ans;
+}
+
+function walkTransform(v, fieldString, tag, transforms) {
+  let firstComma = fieldString.indexOf(",");
+  // There may be no transforms, so raw dog the value
+  if (firstComma !== -1) {
+    // Perform all transforms sequentially
+    walkWord(
+      tag,
+      (field) => transforms[field] && (v = transforms[field](v)),
+      ",",
+      firstComma + 1,
+      tag.length
+    );
+  }
+
+  return v;
 }
 
 // Helper string to walk a string from a start to an end, performing the provided function every time it finds a "separator" character, calling it with the string behind it
