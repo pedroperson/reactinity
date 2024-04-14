@@ -25,6 +25,39 @@ class Reactinity {
         this.attachElement(el, tag, fn);
       });
     });
+    this.attachAllElements2();
+  }
+
+  attachAllElements2() {
+    Object.entries(INITIALIZATIONS).forEach(([tag, subscribeElement]) => {
+      document.querySelectorAll(`[${tag}]`).forEach((el) => {
+        const storeName = storeNameFromEl(el, tag);
+        if (!storeName)
+          throw new Error(
+            `[iSCream] You need a store name to subscribe with '${tag}'`
+          );
+
+        // Ignore child listeners
+        if (storeName === "_") {
+          return;
+        }
+
+        const store = this.STORES[storeName];
+        if (!store)
+          throw new Error(
+            `[iSCream] You are '${tag}' to subscribe to a store that does not exist: ${storeName} `
+          );
+
+        // Re-render the element when the store changes
+        const unsub = subscribeElement(el, store, this.transforms, tag);
+
+        // TODO: Should we be able to give ids to subscrptions? so that we can unsubscribe from the outsite? so when we delete the element that is subscribing we can unsub thorugh its pointer as id
+        if (unsub) {
+          if (el._unsubs) el._unsubs.push(unsub);
+          else Object.assign(el, { _unsubs: [unsub] });
+        }
+      });
+    });
   }
 
   attachElement(el, tag, fn) {
@@ -75,19 +108,21 @@ class Reactinity {
   }
 
   attachArrayElements() {
-    document.querySelectorAll("[re-array]").forEach((parent) => {
-      const storeName = parent.getAttribute("re-array");
-      const arrayStore = this.STORES[storeName];
-      if (!arrayStore)
-        throw new Error(
-          `[iSCream] You are attempting to subscribe to an ArrayStore that does not exist: "${storeName}" `
-        );
+    document
+      .querySelectorAll('[re-array]:not([re-array^="_"])')
+      .forEach((parent) => {
+        const storeName = parent.getAttribute("re-array");
+        const arrayStore = this.STORES[storeName];
+        if (!arrayStore)
+          throw new Error(
+            `[iSCream] You are attempting to subscribe to an ArrayStore that does not exist: "${storeName}" `
+          );
 
-      // Fancy subscribe to respond to fine grained updates
-      const sub = new ArrayStoreUISubscriber(parent, this.transforms);
+        // Fancy subscribe to respond to fine grained updates
+        const sub = new ArrayStoreUISubscriber(parent, this.transforms);
 
-      arrayStore.subscribe(sub);
-    });
+        arrayStore.subscribe(sub);
+      });
   }
 }
 /** Define the key functionality of the library, keyed by the attribute on the element to be updated. Reactinity will look for elements with the attributes in each of the keys and subscribe them accordingly */
@@ -96,15 +131,19 @@ const storeFunctions = {
   "re-innerhtml": (el, store, transform, fields) => {
     return store.subscribe((val) => {
       let v = val;
-      // Go down the children of the object
-      for (let i = 0; i < fields.length; i++) {
-        v = v[fields[i]];
+      if (v) {
+        // Go down the children of the object
+        for (let i = 0; i < fields.length; i++) {
+          v = v[fields[i]];
+        }
       }
 
       // Prettify the value for the UI
       if (transform) {
         v = transform(v);
       }
+
+      // TODO: Transform to string since thats what the dom is going to do any way?
 
       // Conditionally re-render. Using the DOM as our state manager here so can only do this check after prepocessing
       if (el.innerHTML !== v) {
@@ -167,10 +206,22 @@ const storeFunctions = {
     // listen to values, set defaults
     const updateField = (field) => (e) => {
       // TODO: transform this value first, but need access to all the transforms or to pass the transform into the element and read it from it, idk whats worse
-      let v = e.target.value;
-      if (formData[field] !== v) {
-        formData[field] = v;
+      let v = e.target.value || "";
+
+      // The field may be in the form of abs
+      const fields = field.split(".");
+      // let currVal = fields.reduce((acc,field)=>acc[field],formData);
+      let i = 0;
+      let obj = formData;
+      while (i < fields.length - 1) {
+        obj = obj[fields[i]];
+        i += 1;
       }
+
+      if (obj[fields[i]] !== v) {
+        obj[fields[i]] = v;
+      }
+
       // TODO: check things like "checked" for checkboxes, there is a lot of work to be done here, but its enough for the text thingy
     };
 
@@ -193,7 +244,9 @@ const storeFunctions = {
       const update = updateField(fieldName);
       // Update now!
       // TODO: transform this value first, but need access to all the transforms or to pass the transform into the element and read it from it, idk whats worse
-      formElement.value = formData[fieldName];
+      formElement.value = fieldName
+        .split(".")
+        .reduce((acc, field) => acc[field], formData);
       // Update when anything in the form potentially changes
       formElement.addEventListener("input", update);
       formElement.addEventListener("change", update);
@@ -352,6 +405,11 @@ class ArrayStoreUISubscriber {
 
   set(newArray) {
     while (this.parent.firstChild) {
+      console.log(
+        "deleting",
+        this.parent.lastChild,
+        this.parent.lastChild._unsubs
+      );
       this.parent.removeChild(this.parent.lastChild);
     }
 
@@ -408,6 +466,7 @@ class ArrayStoreUISubscriber {
       return el.DIRTYDATA === data;
     });
 
+    console.log("deleting ROW", el, el._unsubs);
     this.parent.removeChild(el);
   }
 
@@ -418,6 +477,7 @@ class ArrayStoreUISubscriber {
 
     const newNode = cloneTemplate(newData, this.template, this.transforms);
     this.parent.insertBefore(newNode, el);
+    console.log("overwriteRow", el, el._unsubs);
     this.parent.removeChild(el);
   }
 }
@@ -468,14 +528,12 @@ function cloneTemplate(item, template, transforms) {
     });
   });
 
-  console.log("arrs?", clone.hasAttribute("re-click"));
   if (clone.hasAttribute("re-click")) {
     const original = clone.onclick;
     clone.onclick = null;
     clone.removeAttribute("onclick");
     // Now we write our event customization layer so that the user has easy access to the item in the array related to the button being clicked
     clone.addEventListener("click", (event) => {
-      console.log("clicked", item);
       event = Object.assign(event, { item });
       original(event);
     });
@@ -502,4 +560,184 @@ function updateClass(el, item, allTransforms) {
   } else if (!v && el.classList.contains(className)) {
     el.classList.remove(className);
   }
+}
+
+const INITIALIZATIONS = {
+  // The basic element binding simply listens to the store, and sets its innerText to a transform of its value
+  re: (el, store, transforms, attr) => {
+    return store.subscribe((val) => {
+      UPDATES.innerText(el, val, transforms, attr);
+    });
+  },
+  //
+  "re-value": (el, store, transforms, attr) => {
+    // Update the store at element input
+    listenToValue(el, store, transforms, attr);
+
+    // Update element value at store change
+    return store.subscribe((val) => {
+      UPDATES.value(el, val, transforms, attr);
+    });
+  },
+};
+
+const UPDATES = {
+  innerText: (el, val, transforms, attr) => {
+    if (val === null || val === undefined) {
+      el.innerText = "";
+      return;
+    }
+    // Read the field componsition from the element attribute
+    const fields = el.getAttribute(attr);
+    // ignoring first cus we already took care of the store name by this point
+    let v = readField(val, fields, true, transforms);
+    // To string makes it comparable to the dom
+    v = v.toString();
+    // Conditionally re-render. Since we use the DOM as our state manager we can only do this check after prepocessing
+    if (el.innerText === v) return;
+    el.innerText = v;
+  },
+  value: (el, val, transforms, attr) => {
+    // Read the field componsition from the element attribute
+    const fields = el.getAttribute(attr);
+    // Ignore first cus we already took care of the store name by this point
+    let v = readField(val, fields, true, transforms);
+    // Update the value of element in the DOM
+    if (el.value === v) return;
+    el.value = v;
+    // TODO: what if element is not a textbox? checkbox, radio, select. i need to do checked and such checks
+  },
+};
+
+function listenToValue(el, store, transforms, attr) {
+  // Update the store at element input
+  // TODO: just input is not enough! need to listen to change, click, keyup, stuff like that
+  el.addEventListener("input", () => {
+    let v = el.value;
+    const tag = el.getAttribute(attr);
+
+    let firstComma = tag.indexOf(",");
+    // There may be no transforms, so raw dog the value
+    if (firstComma !== -1) {
+      // Perform all transforms sequentially
+      walkWord(
+        tag,
+        (field) => transforms[field] && (v = transforms[field](v)),
+        ",",
+        firstComma + 1,
+        tag.length
+      );
+    } else {
+      firstComma = tag.length;
+    }
+
+    // Update the value, or a field value
+    const fields = tag.substr(0, firstComma).split(".");
+    if (fields <= 1) {
+      if (store.value !== v) {
+        store.set(v);
+      }
+    } else {
+      updateStoreField(store, fields, v);
+    }
+  });
+}
+
+// READ STRINGS -----
+function storeNameFromEl(el, attributeName) {
+  let attr = el.getAttribute(attributeName);
+
+  if (!attr) return "";
+
+  let end = attr.indexOf(",");
+  if (end === -1) end = attr.length;
+
+  let firstPeriod = attr.indexOf(".");
+  if (firstPeriod === -1) firstPeriod = attr.length;
+
+  if (end > firstPeriod) {
+    end = firstPeriod;
+  }
+
+  return attr.substr(0, end);
+}
+// field strings can be like "asdf", "user.name", "user.mom.age","_.color.hex"
+function readField(obj, fieldString, ignoreFirst, transforms) {
+  fieldString = fieldString.trim();
+
+  let ans = obj;
+
+  let firstComma = fieldString.indexOf(",");
+  if (firstComma === -1) firstComma = fieldString.length;
+
+  // The first parameter find the data node by doing down the fields in the data object
+  walkWord(
+    fieldString,
+    (field, index) => {
+      if (ignoreFirst && index === 0) {
+        return;
+      }
+      ans = ans[field];
+    },
+    ".",
+    0,
+    firstComma
+  );
+
+  // Every remaining words are the names of transforms to be applied in order to the target value
+  walkWord(
+    fieldString,
+    (field, index) => {
+      const transform = transforms[field];
+      if (transform) {
+        ans = transform(ans);
+      }
+    },
+    ",",
+    firstComma + 1,
+    fieldString.length
+  );
+
+  return ans;
+}
+
+// Helper string to walk a string from a start to an end, performing the provided function every time it finds a "separator" character, calling it with the string behind it
+function walkWord(str, fn, separator, start = 0, end = null) {
+  if (end === null) end = str.length;
+
+  let i = start;
+  while (i < end) {
+    if (str[i] !== separator) {
+      i++;
+      continue;
+    }
+    // Reached a separator, so everything behind us is a field
+    let field = str.substr(start, i - start);
+    // Perform user action
+    fn(field, start);
+    // Move on to the next word
+    i++;
+    start = i;
+  }
+
+  let field = str.substr(start, i - start);
+  fn(field, start);
+}
+
+function updateStoreField(store, fields, v) {
+  store.update((storeVal) => {
+    let i = 1;
+    let obj = storeVal;
+    // Go down to the last level
+    while (i < fields.length - 1) {
+      obj = obj[fields[i]];
+      i++;
+    }
+    // Update last field value
+    const f = fields[fields.length - 1];
+    if (obj[f] !== v) {
+      obj[f] = v;
+    }
+    return storeVal;
+  });
 }
