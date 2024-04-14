@@ -33,10 +33,10 @@
     </script>
 
     <!-- THE HEADER -->
-    <header class="sticky top-0 w-full bg-white z-40">
+    <header class="sticky top-0 w-full bg-white z-30">
       <nav class="p-4 flex justify-between items-center gap-4">
         <a
-          href="/"
+          href="/ecommerce-challenge.html"
           class="font-bold text-lg"
           style="font-family: 'Helvetica', sans-serif"
         >
@@ -45,8 +45,8 @@
 
         <!-- Navigation links -->
         <div class="flex gap-4 items-center">
-          <a href="/about" class="text-lg">About</a>
-          <a href="/products" class="text-lg">Products</a>
+          <a href="/example.html" class="text-lg">About</a>
+          <a href="/shopping-example.html" class="text-lg">Products</a>
           <button
             class="bg-blue-500 text-white px-3 py-2 rounded-full"
             onclick="showCartStore.set(true)"
@@ -60,7 +60,7 @@
     <!-- THE ANNOYING COOKIE BANNER
         controlling the visibility of the banner with a boolean store  -->
     <script>
-      const cookieBanner = reactinity.newStore("cookie", true);
+      const cookieBanner = reactinity.newStore("cookie", false);
     </script>
 
     <!-- TODO: add aria labels -->
@@ -93,22 +93,38 @@
     <!-- Page of products -->
 
     <script>
+      const allColors = ["red", "blue", "yellow"];
+
       const products = [
         {
           name: "shirt",
           price: 10000,
           country: "USA",
+          variants: [
+            { color: "red", sizes: ["s", "m", "l"] },
+            { color: "blue", sizes: ["s", "l"] },
+            { color: "yellow", sizes: ["m", "l"] },
+          ],
         },
         {
           name: "skirt",
           price: 20000,
           new: true,
           country: "China",
+          variants: [
+            { color: "red", sizes: ["l"] },
+            { color: "blue", sizes: ["s", "l"] },
+            { color: "yellow", sizes: ["l"] },
+          ],
         },
         {
           name: "dress",
           price: 15000,
           country: "Brazil",
+          variants: [
+            { color: "red", sizes: ["s", "m", "l"] },
+            { color: "blue", sizes: ["s", "l"] },
+          ],
         },
         {
           name: "shoes",
@@ -119,6 +135,7 @@
           name: "socks",
           price: 1000,
           country: "Uruguay",
+          variants: [{ color: "yellow", sizes: ["m", "l"] }],
         },
       ];
 
@@ -128,6 +145,11 @@
         const opts = { style: "currency", currency: "USD" };
         return new Intl.NumberFormat("en-US", opts).format(cents / 100);
       });
+
+      function chooseColor(product, color) {
+        console.log("chosen color", { product, color });
+        product._color = color;
+      }
     </script>
     <style>
       .custom-grid {
@@ -145,12 +167,7 @@
 
       <div re-array="products" class="custom-grid gap-4">
         <!-- TODO: Need to handle case where re-template also has re-click and such -->
-        <button
-          re-template
-          re-click
-          onclick="cart.add(event.item)"
-          class="border border-black p-4 w-full flex-1"
-        >
+        <div re-template class="border border-black p-4 w-full flex-1">
           <div class="relative w-full h-48">
             <!-- TODO: re-src is not supported yet -->
             <img
@@ -171,7 +188,37 @@
               re-transform="dollars"
             ></div>
           </div>
-        </button>
+
+          <!-- Selectors -->
+          <div>
+            <!-- TODO: array inside an array targeting an element field -->
+            <div re-array="_.colors" class="flex gap-2">
+              <!-- TODO: this has a re-click while being inside another array, so it is getting activated by its re-click. so i need tome way to block search when reaching another re-array -->
+              <button
+                class="rounded-full w-10 h-10 bg-blue-500 outline-none focus:outline-none hover:outline-black transition-outline duration-150"
+                title="blue"
+                re-click
+                onclick="chooseColor(event.item);"
+              ></button>
+            </div>
+          </div>
+
+          <button
+            re-click
+            onclick="cart.add(event.item);showCartStore.set(true)"
+            class="border border-black p-4 w-full flex-1 mt-3"
+          >
+            Add to cart
+          </button>
+
+          <button
+            re-click
+            onclick="showProductModal(event.item)"
+            class="border border-black p-4 w-full flex-1 mt-2"
+          >
+            More info
+          </button>
+        </div>
       </div>
     </section>
 
@@ -232,22 +279,30 @@
       const cartStore = reactinity.newArrayStore("cart", []);
       const cart = new Cart(cartStore);
 
+      const deleteMe = reactinity.newStore("deleteMe", {
+        count: 0,
+      });
+      deleteMe.subscribe((c) => console.log("delete me has changed", c));
+      const upDel = () =>
+        deleteMe.update((c) => {
+          c.count += 1;
+          return c;
+        });
       // Close the cart if user empties it
       cartStore.subscribe((pp) => pp.length === 0 && showCartStore.set(false));
     </script>
 
     <section
-      class="fixed right-0 top-0 w-64 h-screen overflow-auto bg-white border-l-4 border-red-500 p-4 z-40"
+      class="fixed right-0 top-0 w-64 h-screen overflow-auto bg-white border-l-4 border-red-500 p-4 z-30"
       re-show="showCart"
     >
       <!-- Cart Title -->
       <div class="text-lg font-bold mb-4">
         Your cart
-        <span
-          class="text-sm font-normal"
-          re-innerhtml="cart"
-          re-transform="totalCartCount"
-        ></span>
+        <span class="text-sm font-normal" re="cart,totalCartCount"></span>
+        <div re="deleteMe.count"></div>
+        <input type="number" re-value="deleteMe.count,number" />
+        <button onclick="upDel()">aad</button>
       </div>
 
       <div>
@@ -295,6 +350,10 @@
             </button>
           </div>
 
+          <div>
+            <!-- TODO: make this work when re-write the array stuff -->
+            <span class="text-sm font-normal" re="_.quantity"></span>
+          </div>
           <!-- Remove Button -->
           <button
             class="ml-4 text-red-500 text-sm"
@@ -304,23 +363,251 @@
             Remove
           </button>
         </li>
-        <!-- Add additional products here -->
+        <!-- TODO: handle empty case -->
+        <li re-empty>Your cart is empty</li>
       </ul>
     </section>
 
-    <!-- THE FOOTER -->
+    <!-- THE MODAL -->
+
+    <script>
+      const productModalStore = reactinity.newStore("productModal", null);
+      function showProductModal(item) {
+        productModalStore.set(item);
+        modalImageStore.set({
+          src: item.name,
+          alt: `${item.name.toUpperCase()}`,
+        });
+      }
+      function hideProductModal() {
+        productModalStore.set(null);
+      }
+
+      const modalImageStore = reactinity.newStore("modalImage", {
+        src: "",
+        alt: "",
+      });
+
+      function previousModalImage() {
+        const item = productModalStore.value;
+        const previous = {
+          src: item.name + "0",
+          alt: `${item.name.toUpperCase() + "0"}`,
+        };
+        modalImageStore.set(previous);
+      }
+      function nextModalImage() {
+        const item = productModalStore.value;
+        const next = {
+          src: item.name + "1",
+          alt: `${item.name.toUpperCase() + "1"}`,
+        };
+        modalImageStore.set(next);
+      }
+    </script>
+    <div
+      re-show="productModal"
+      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+      onclick="hideProductModal()"
+    >
+      <div
+        class="bg-white max-h-[80%] overflow-auto max-w-xlg w-[80vw] rounded-md"
+        onclick="event.stopPropagation()"
+      >
+        <div
+          class="flex justify-between items-center gap-4 border-b border-black p-4"
+        >
+          <h2>Product Info</h2>
+          <button onclick="hideProductModal()">X</button>
+        </div>
+        <div class="p-4">
+          <div class="flex flex-col sm:flex-row gap-4">
+            <div class="flex-1 max-w-lg w-full relative">
+              <!-- TODO: re-src re-alt-->
+              <img
+                src="https://via.placeholder.com/150"
+                re-src="modalImage.src"
+                re-alt="modalImage.alt"
+                class="object-cover w-full h-full"
+              />
+              <button
+                class="absolute top-1/2 left-0 transform -translate-y-1/2 rounded-full w-10 h-10 flex items-center justify-center hover:border-black border-2 border-transparent"
+                onclick="previousModalImage()"
+              >
+                &lt;
+              </button>
+              <button
+                class="absolute top-1/2 right-0 transform -translate-y-1/2 rounded-full w-10 h-10 flex items-center justify-center hover:border-black border-2 border-transparent"
+                onclick="nextModalImage()"
+              >
+                &gt;
+              </button>
+            </div>
+
+            <div class="flex-1">
+              <h3
+                class="text-lg font-bold"
+                re-innerhtml="productModal.name"
+              ></h3>
+              <p re-innerhtml="productModal.country"></p>
+              <div
+                class="text-xl font-semibold"
+                re-innerhtml="productModal.price"
+                re-transform="dollars"
+              ></div>
+              <button
+                class="bg-blue-500 text-white font-bold py-2 px-4 rounded"
+                onclick="cart.add(productModalStore.value); hideProductModal();showCartStore.set(true)"
+              >
+                Add to cart
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- THE FOOTER / NEWSLETTER FORM -->
+    <style>
+      .honeypot {
+        opacity: 0;
+        /* position: absolute; */
+        top: 0;
+        left: 0;
+        height: 0;
+        width: 0;
+        z-index: -1;
+      }
+    </style>
+    <script>
+      let newsletterStore = reactinity.newStore("newsletter", {
+        name: "",
+        email: "",
+        honeypot: {
+          name: "",
+          email: "",
+        },
+      });
+
+      let newsletterSuccessModal = reactinity.newStore(
+        "newsletterSuccessModal",
+        false
+      );
+
+      function submitNewsletterForm(event) {
+        event.preventDefault();
+        const data = event.reData;
+        newsletterStore.set(data);
+
+        const success = {
+          message: "🤩You have been subscribed to the newsletter🥰",
+        };
+
+        // Try to catch basic bots with a honeypot
+        if (data.honeypot.name || data.honeypot.email) {
+          console.log(
+            "WOW thank you like, sooo much! tootally successull!! yeah no probs"
+          );
+          newsletterSuccessModal.set(success);
+          return;
+        }
+
+        // Submit data
+        if (Math.random() < 0.5) {
+          newsletterSuccessModal.set({
+            message:
+              "😮‍💨 Something went wrong is our server, try again later 😴",
+          });
+          return;
+        }
+        newsletterSuccessModal.set(success);
+      }
+
+      function handleOnChange(event) {
+        console.log("Handle on change", { event });
+      }
+    </script>
+
     <footer class="bg-blue-900 text-white p-12 mt-24">
       <div class="flex flex-wrap justify-between max-w-4xl mx-auto">
         <!-- First Column -->
-        <div class="w-1/2 p-2">
+        <div>
           <a href="/" class="text-sm">HOME</a>
         </div>
         <!-- Second Column -->
-        <div class="w-1/2 p-2 flex flex-col gap-2">
+        <div class="flex flex-col gap-2">
           <a href="/about" class="text-sm">About</a>
           <a href="/products" class="text-sm">Products</a>
         </div>
+        <!-- Newsletter form -->
+        <form
+          re-form="newsletter"
+          onsubmit="submitNewsletterForm(event)"
+          onchange="handleOnChange(event)"
+        >
+          <div>Subscribe to our newsletter</div>
+          <div>
+            <label for="">Name:</label>
+            <input
+              re-value="_.name"
+              type="text"
+              placeholder="Name"
+              class="text-black"
+            />
+          </div>
+
+          <div>
+            <label for="">Email:</label>
+            <input
+              re-value="_.email"
+              type="email"
+              placeholder="Email"
+              class="text-black"
+            />
+          </div>
+
+          <!-- Try to catch some bots -->
+          <input
+            re-value="_.honeypot.name"
+            class="honeypot"
+            autocomplete="off"
+            type="text"
+            name="name"
+          />
+          <input
+            re-value="_.honeypot.email"
+            class="honeypot"
+            autocomplete="off"
+            type="email"
+            name="email"
+          />
+          <div>
+            <button type="submit">Submit</button>
+          </div>
+        </form>
       </div>
     </footer>
+
+    <!-- Newsletter success modal -->
+    <div
+      re-show="newsletterSuccessModal"
+      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+      onclick="newsletterSuccessModal.set(false)"
+    >
+      <div
+        class="bg-white max-h-[80%] overflow-auto max-w-xlg w-[80vw] rounded-md"
+        onclick="event.stopPropagation()"
+      >
+        <div
+          class="flex justify-between items-center gap-4 border-b border-black p-4"
+        >
+          <h2>Newsletter subscription</h2>
+          <button onclick="newsletterSuccessModal.set(false)">X</button>
+        </div>
+        <div class="p-4">
+          <p re-innerhtml="newsletterSuccessModal.message"></p>
+        </div>
+      </div>
+    </div>
   </body>
 </html>
