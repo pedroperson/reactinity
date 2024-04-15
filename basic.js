@@ -28,7 +28,8 @@ class Reactinity {
     // Define your own data transforms to be used anywhere in the UI.
     this.newTransform("number", (val) => Number(val));
     this.newTransform("length", (val) => val.length);
-    this.newTransform("mmddyy", (unix) => new Date(unix).toLocaleDateString());
+    this.newTransform("date", (unix) => new Date(unix).toLocaleDateString());
+    this.newTransform("time", (unix) => new Date(unix).toLocaleTimeString());
 
     // Turn DOM elements reactive
     window.addEventListener("DOMContentLoaded", () => {
@@ -43,24 +44,32 @@ const HTMSMELLER = {
     const els = document.querySelectorAll(`[${tag}]`);
 
     els.forEach((el) => {
-      const trans = el.getAttribute(`[re-transform]`) || "";
-      const transformNames = trans
-        .split(",")
-        .map((s) => s.trim())
-        .filter((v) => v);
+      // PERFORMANCE: IDK if its more worth to read the values inside the subscription function or here. The latter means that we are keeping the store field and transform arrays alive for as long as the subscription lives. On the other handing, caching the values means we don't have to process them every time. Something to test probably
 
-      if (transformNames.some((t) => !transforms.hasOwnProperty(t)))
-        throw "ERROR Invalid transform";
-
-      const storeName = el.getAttribute(`[${tag}]`);
+      // Find the store related to the element
+      const attr = el.getAttribute(tag);
+      const [storeName, ...storeFields] = attr.split(".");
       if (!storeName || !stores.hasOwnProperty(storeName))
         throw "ERROR invalid store name " + storeName;
-
       const store = stores[storeName];
+
+      // Prepare the transform names related to the element
+      const trans = el.getAttribute("re-transform") || "";
+      const transformNames = trans
+        .split(",") // Transforms are separated by commas
+        .map((s) => s.trim())
+        .filter((v) => !!v);
+      if (transformNames.some((t) => !transforms.hasOwnProperty(t)))
+        throw "ERROR Invalid transform " + trans;
+
       store.subscribe((v) => {
+        // Reach field
+        storeFields.forEach((f) => (v = v[f]));
+        // Transform value
         transformNames.forEach((t) => (v = transforms[t](v)));
-        // Since the dom is gonna do this anyway, we turn to a string for a last miute comparison to potentially avoid a DOM manipulation
+        // Turn to string since the dom is gonna do this anyway.
         v = v.toString();
+        // Conditially rerender
         if (v !== el.innerText) {
           el.innerText = v;
         }
