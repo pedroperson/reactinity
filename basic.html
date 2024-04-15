@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Reactinity - Example 1</title>
+    <!-- Add some basic css so we don't have to clutter the html for this example -->
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      span[re] {
+        font-weight: 700;
+      }
+
+      .my-page-width {
+        width: 100%;
+        max-width: 1400px;
+        margin-left: auto;
+        margin-right: auto;
+        padding-left: 2em;
+        padding-right: 2em;
+
+        margin-top: 2em;
+      }
+
+      @media (max-width: 768px) {
+        .my-page-width {
+          padding-left: 1em;
+          padding-right: 1em;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Import the js code however you want -->
+    <script src="/basic.js"></script>
+
+    <!-- Keep the ArrayStore templates from showing from the start. is there are better way to do this ? Maybe we shouldn't care and just do it js asap? -->
+    <style>
+      [re-template] {
+        display: none;
+      }
+    </style>
+
+    <!-- ---------------------------------------------------------------- -->
+    <!-- INITIALIZE REACTINITY ------------------------------------------ -->
+    <!-- ---------------------------------------------------------------- -->
+    <script>
+      const reactinity = new Reactinity();
+      reactinity.defaultInit();
+    </script>
+
+    <!-- ---------------------------------------------------------------- -->
+    <!-- 1. BASIC EXAMPLES ---------------------------------------------- -->
+    <!-- We'll start with a simple counter example----------------------- -->
+    <script>
+      // The counter
+      // Create a basic integer store
+      const countStore = reactinity.newStore("count", 0);
+      // Write some functions that interact with the store
+      const Counter = {
+        up: () => countStore.update((v) => v + 1),
+        down: () => countStore.update((v) => v + 1),
+        reset: () => countStore.set(0),
+      };
+
+      // Create a store whose value depends on another
+      const relatedStore = reactinity.newStore("related", countStore.value);
+      // Subscribe to the store so we can update its value every time the count changes
+      countStore.subscribe((v) => relatedStore.set(v + 100));
+
+      //   You can also use transforms for such situations
+      reactinity.newTransform("plus200", (v) => v + 200);
+    </script>
+
+    <section class="my-page-width">
+      <div>
+        Reactive count: <span re="count"></span>.
+        <span>Plus 100: <span re="derived"></span>.</span>
+        <span>Plus 200 <span re="count" trasform="plus200"></span></span>
+      </div>
+      <div>Count plus 100:</div>
+      <button onclick="Counter.up()">Add to count</button>
+      <button onclick="Counter.down()">Add to count</button>
+      <button onclick="reset()">Reset</button>
+    </section>
+
+    <!-- ---------------------------------------------------------------- -->
+    <!-- BASIC EXAMPLES ------------------------------------------------- -->
+    <!-- We'll start with a simple counter example----------------------- -->
+    <script>
+      // Initialize an object store
+      const obj = reactinity.newStore("user", {
+        name: "Michael Travis",
+        age: 24,
+        joined: 1710853950,
+        interactions: {
+          lastClicked: 0,
+        },
+      });
+
+      function updateInteraction() {
+        obj.update((v) => {
+          v.child.name = "Michael";
+          return v;
+        });
+      }
+    </script>
+
+    <section class="my-page-width">
+      <div style="border: 1px solid black; padding: 1em">
+        <div>Name: <span re="user.name"></span></div>
+        <div>Age: <span re="user.age"></span></div>
+        <div>Joined: <span re="user.joined" re-transform="mmddyy"></span></div>
+        <div>
+          Last interaction: <span re="user.interactions.lastClicked"></span>
+        </div>
+
+        <button onclick="updateInteraction()">Update interaction</button>
+      </div>
+    </section>
+  </body>
+</html>
