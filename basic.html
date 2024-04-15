@@ -61,64 +61,65 @@
       // Write some functions that interact with the store
       const Counter = {
         up: () => countStore.update((v) => v + 1),
-        down: () => countStore.update((v) => v + 1),
+        down: () => countStore.update((v) => v - 1),
         reset: () => countStore.set(0),
       };
 
       // Create a store whose value depends on another
       const relatedStore = reactinity.newStore("related", countStore.value);
-      // Subscribe to the store so we can update its value every time the count changes
       countStore.subscribe((v) => relatedStore.set(v + 100));
 
-      //   You can also use transforms for such situations
+      // You can also use transforms for such situations. A transform takes in the current value of a store and feeds it through a function. Here we are naming a transform "plus200" so we can reference it in the dom.
       reactinity.newTransform("plus200", (v) => v + 200);
     </script>
 
     <section class="my-page-width">
       <div>
-        Reactive count: <span re="count"></span>.
-        <span>Plus 100: <span re="derived"></span>.</span>
-        <span>Plus 200 <span re="count" trasform="plus200"></span></span>
+        Count = <span re="count"></span>;
+        <span>Count + 100 = <span re="related"></span>;</span>
+        <span
+          >Count + 200 = <span re="count" re-transform="plus200"></span>;</span
+        >
       </div>
-      <div>Count plus 100:</div>
-      <button onclick="Counter.up()">Add to count</button>
-      <button onclick="Counter.down()">Add to count</button>
-      <button onclick="reset()">Reset</button>
+      <button onclick="Counter.down()">-1</button>
+      <button onclick="Counter.up()">+1</button>
+      <button onclick="Counter.reset()">Reset</button>
     </section>
 
     <!-- ---------------------------------------------------------------- -->
-    <!-- BASIC EXAMPLES ------------------------------------------------- -->
-    <!-- We'll start with a simple counter example----------------------- -->
+    <!-- OBJECT EXAMPLE ------------------------------------------------- -->
+    <!-- ---------------------------------------------------------------- -->
     <script>
-      // Initialize an object store
+      // Here we
       const obj = reactinity.newStore("user", {
         name: "Michael Travis",
-        age: 24,
         joined: 1710853950,
+        // Using an object inside of another just to show off
         interactions: {
           lastClicked: 0,
         },
       });
 
+      // Imagine a function that updates specific fields of an object and displays the changes immediately
       function updateInteraction() {
         obj.update((v) => {
-          v.child.name = "Michael";
+          v.interactions.lastClicked = Date.now();
           return v;
         });
       }
     </script>
 
     <section class="my-page-width">
-      <div style="border: 1px solid black; padding: 1em">
-        <div>Name: <span re="user.name"></span></div>
-        <div>Age: <span re="user.age"></span></div>
-        <div>Joined: <span re="user.joined" re-transform="mmddyy"></span></div>
-        <div>
-          Last interaction: <span re="user.interactions.lastClicked"></span>
-        </div>
-
-        <button onclick="updateInteraction()">Update interaction</button>
+      <!-- Target store fields directly using object notation -->
+      <div>Name: <span re="user.name"></span></div>
+      <!-- Transform objet field values directly -->
+      <div>Joined: <span re="user.joined" re-transform="date"></span></div>
+      <!-- Reactinity comes with some default transforms you can use. -->
+      <div>
+        Last interaction:
+        <span re="user.interactions.lastClicked" re-transform="time"></span>
       </div>
+      <button onclick="updateInteraction()">Update interaction</button>
     </section>
   </body>
 </html>
