@@ -73,24 +73,22 @@
       reactinity.newTransform("plus200", (v) => v + 200);
     </script>
 
-    <section class="my-page-width">
+    <section>
+      Count = <span re="count"></span>;
+      <span>C + 100 = <span re="related"></span>;</span>
+      <span>C + 200 = <span re="count" re-transform="plus200"></span>;</span>
       <div>
-        Count = <span re="count"></span>;
-        <span>Count + 100 = <span re="related"></span>;</span>
-        <span
-          >Count + 200 = <span re="count" re-transform="plus200"></span>;</span
-        >
+        <button onclick="Counter.down()">-1</button>
+        <button onclick="Counter.up()">+1</button>
+        <button onclick="Counter.reset()">Reset</button>
       </div>
-      <button onclick="Counter.down()">-1</button>
-      <button onclick="Counter.up()">+1</button>
-      <button onclick="Counter.reset()">Reset</button>
     </section>
 
     <!-- ---------------------------------------------------------------- -->
     <!-- OBJECT EXAMPLE ------------------------------------------------- -->
     <!-- ---------------------------------------------------------------- -->
     <script>
-      // Here we
+      // Reactinity can handle more complex data types like objects.
       const obj = reactinity.newStore("user", {
         name: "Michael Travis",
         joined: 1710853950,
@@ -101,7 +99,8 @@
       });
 
       // Imagine a function that updates specific fields of an object and displays the changes immediately
-      function updateInteraction() {
+      function updateLastClicked() {
+        // TODO: Consider an update field function for more fine-grained
         obj.update((v) => {
           v.interactions.lastClicked = Date.now();
           return v;
@@ -109,7 +108,7 @@
       }
     </script>
 
-    <section class="my-page-width">
+    <section>
       <!-- Target store fields directly using object notation -->
       <div>Name: <span re="user.name"></span></div>
       <!-- Transform objet field values directly -->
@@ -119,7 +118,74 @@
         Last interaction:
         <span re="user.interactions.lastClicked" re-transform="time"></span>
       </div>
-      <button onclick="updateInteraction()">Update interaction</button>
+      <button onclick="updateLastClicked()">Update interaction</button>
+    </section>
+
+    <!-- ---------------------------------------------------------------- -->
+    <!-- ARRAY EXAMPLE -------------------------------------------------- -->
+    <!-- ---------------------------------------------------------------- -->
+    <script>
+      // Example Array Data
+      const products = [
+        {
+          name: "shirt",
+          price: 10000,
+          country: { name: "Brazil", code: "BRA" },
+          // TODO: An array inside an array is going to be a mess
+          variants: [
+            { color: "red", sizes: ["s", "m", "l"] },
+            { color: "blue", sizes: ["s", "l"] },
+          ],
+        },
+        {
+          name: "skirt",
+          price: 20000,
+          new: true,
+          country: { name: "Argentina", code: "ARG" },
+          variants: [{ color: "red", sizes: ["l"] }],
+        },
+      ];
+
+      // Turn said array into an ArrayStore. They are different from regular Store in that they have specific modification functions that allow the user to make fine-grained array modifications and have the DOM update accordingly.
+      // TODO: The big question here is whether they should be different at all... I definitely don't want to need two factories, newStore and new arrayStore; the function should be able to tell, but maybe it null or something at load, so maybe all Store has all the crazy functions but we would need to check the type every time the function got called, and then the user would have to wait to runtime to tell them they made a mistake... So maybe they should be totally different like they are now
+      const productsStore = reactinity.newStore("products", products);
+      // newArrayStore("products", products);
+
+      // Define a more complex transform to get the numeric prices that come in as integers of cents to a formatted dollar string
+      reactinity.newTransform("dollars", (cents) => {
+        const opts = { style: "currency", currency: "USD" };
+        return new Intl.NumberFormat("en-US", opts).format(cents / 100);
+      });
+    </script>
+
+    <!-- TODO: Im not super sold on the re-field vs re="_." debate.... if i have an array of numbers, how am i going to day this value? maybe an empty re-field?   -->
+
+    <section>
+      <!-- Use re-array to render similar repeating items in a list -->
+      <div re-array="products">
+        <!-- re-template defined the HTML for an item. Each value inside the products array will clone this template and populate it with relevant data  -->
+        <div re-template>
+          <div>
+            <div>
+              <!-- "re-field" works like "re" but for the field of the array objects -->
+              <h3 re-field="name"></h3>
+              <!-- "re-field" also accepts nested objects -->
+              <div re-field="country.name"></div>
+            </div>
+            <!-- "re-transform" still work with "re-field"s -->
+            <div re-field="price" re-transform="dollars"></div>
+          </div>
+
+          <!-- Use re-click to attach the array item to the click event object. Now it is easy to know which data related to the button being clicked -->
+          <button
+            re-click
+            onclick="addToCart(event.item)"
+            class="border border-black p-4 w-full flex-1 mt-3"
+          >
+            Add to cart
+          </button>
+        </div>
+      </div>
     </section>
   </body>
 </html>

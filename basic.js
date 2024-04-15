@@ -44,7 +44,7 @@ const HTMSMELLER = {
     const els = document.querySelectorAll(`[${tag}]`);
 
     els.forEach((el) => {
-      // PERFORMANCE: IDK if its more worth to read the values inside the subscription function or here. The latter means that we are keeping the store field and transform arrays alive for as long as the subscription lives. On the other handing, caching the values means we don't have to process them every time. Something to test probably
+      // PERFORMANCE: IDK if its more worth to read the values inside the subscription function or here. The latter means that we are keeping the store field and transform arrays alive for as long as the subscription lives. On the other handing, caching the values means we don't have to process them every time. Something to test, prefering to cache them for now
 
       // Find the store related to the element
       const attr = el.getAttribute(tag);
