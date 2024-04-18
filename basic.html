@@ -119,6 +119,8 @@
     <!-- ARRAY EXAMPLE -------------------------------------------------- -->
     <!-- ---------------------------------------------------------------- -->
 
+    <!-- Bring array logic in -->
+    <script src="/array.js"></script>
     <!-- Keep the ArrayStore templates from showing from the start. is there are better way to do this ? Maybe we shouldn't care and just do it js asap? -->
     <style>
       [re-template] {
@@ -150,7 +152,7 @@
 
       // Turn said array into an ArrayStore. They are different from regular Store in that they have specific modification functions that allow the user to make fine-grained array modifications and have the DOM update accordingly.
       // TODO: The big question here is whether they should be different at all... I definitely don't want to need two factories, newStore and new arrayStore; the function should be able to tell, but maybe it null or something at load, so maybe all Store has all the crazy functions but we would need to check the type every time the function got called, and then the user would have to wait to runtime to tell them they made a mistake... So maybe they should be totally different like they are now
-      const productsStore = reactinity.newStore("products", products);
+      const productsStore = reactinity.newArrayStore("products", products);
       // newArrayStore("products", products);
 
       // Define a more complex transform to get the numeric prices that come in as integers of cents to a formatted dollar string
@@ -158,6 +160,10 @@
         const opts = { style: "currency", currency: "USD" };
         return new Intl.NumberFormat("en-US", opts).format(cents / 100);
       });
+
+      function addToCart(product) {
+        console.log("TODO: add to cart", product);
+      }
     </script>
 
     <!-- TODO: Im not super sold on the re-field vs re="_." debate.... if i have an array of numbers, how am i going to day this value? maybe an empty re-field?   -->
