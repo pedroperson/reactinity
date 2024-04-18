@@ -41,42 +41,61 @@ class Reactinity {
 const HTMSMELLER = {
   attachBasic: (stores, transforms) => {
     const tag = "re";
-    const els = document.querySelectorAll(`[${tag}]`);
 
-    els.forEach((el) => {
-      // PERFORMANCE: IDK if its more worth to read the values inside the subscription function or here. The latter means that we are keeping the store field and transform arrays alive for as long as the subscription lives. On the other handing, caching the values means we don't have to process them every time. Something to test, prefering to cache them for now
+    document.querySelectorAll(`[${tag}]`).forEach((el) => {
+      elementStore(el, tag, stores).subscribe((newVal) => {
+        // reach the value in case user wants an inner field of an object
+        newVal = traverseElementFields(newVal, el, tag);
+        // Transform the value before rendering
+        elementTransforms(el, transforms).forEach((t) => (newVal = t(newVal)));
 
-      // Find the store related to the element
-      const attr = el.getAttribute(tag);
-      const [storeName, ...storeFields] = attr.split(".");
-      if (!storeName || !stores.hasOwnProperty(storeName))
-        throw "ERROR invalid store name " + storeName;
-      const store = stores[storeName];
-
-      // Prepare the transform names related to the element
-      const trans = el.getAttribute("re-transform") || "";
-      const transformNames = trans
-        .split(",") // Transforms are separated by commas
-        .map((s) => s.trim())
-        .filter((v) => !!v);
-      if (transformNames.some((t) => !transforms.hasOwnProperty(t)))
-        throw "ERROR Invalid transform " + trans;
-
-      store.subscribe((v) => {
-        // Reach field
-        storeFields.forEach((f) => (v = v[f]));
-        // Transform value
-        transformNames.forEach((t) => (v = transforms[t](v)));
         // Turn to string since the dom is gonna do this anyway.
-        v = v.toString();
+        newVal = newVal.toString();
         // Conditially rerender
-        if (v !== el.innerText) {
-          el.innerText = v;
+        if (newVal !== el.innerText) {
+          el.innerText = newVal;
         }
       });
     });
   },
 };
+
+function elementStore(el, tag, stores) {
+  // Find the store related to the element
+  const attr = el.getAttribute(tag);
+  let firstPeriod = attr.indexOf(".");
+  firstPeriod = firstPeriod === -1 ? attr.length : firstPeriod;
+
+  const storeName = attr.substring(0, firstPeriod);
+  if (!storeName || !stores.hasOwnProperty(storeName))
+    throw "ERROR invalid store name " + storeName;
+
+  return stores[storeName];
+}
+function elementTransforms(el, transforms) {
+  // Transform names are stored in the element attribute, separated by commas
+  const attribute = el.getAttribute("re-transform");
+  if (!attribute) return [];
+
+  const names = attribute
+    .split(",")
+    .map((s) => s.trim())
+    .filter((v) => !!v);
+
+  if (names.some((t) => !transforms.hasOwnProperty(t)))
+    throw "ERROR Invalid transform " + attribute;
+
+  return names.map((name) => transforms[name]);
+}
+
+function traverseElementFields(val, el, tag) {
+  el.getAttribute(tag)
+    .split(".")
+    .slice(1) // skip the store's name
+    .forEach((field) => (val = val[field]));
+
+  return val;
+}
 
 class Store {
   constructor(initialValue) {

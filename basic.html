@@ -4,6 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Reactinity - Example 1</title>
+  </head>
+  <body>
     <!-- Add some basic css so we don't have to clutter the html for this example -->
     <style>
       * {
@@ -31,17 +33,9 @@
         }
       }
     </style>
-  </head>
-  <body>
+
     <!-- Import the js code however you want -->
     <script src="/basic.js"></script>
-
-    <!-- Keep the ArrayStore templates from showing from the start. is there are better way to do this ? Maybe we shouldn't care and just do it js asap? -->
-    <style>
-      [re-template] {
-        display: none;
-      }
-    </style>
 
     <!-- ---------------------------------------------------------------- -->
     <!-- INITIALIZE REACTINITY ------------------------------------------ -->
@@ -69,7 +63,7 @@
       const relatedStore = reactinity.newStore("related", countStore.value);
       countStore.subscribe((v) => relatedStore.set(v + 100));
 
-      // You can also use transforms for such situations. A transform takes in the current value of a store and feeds it through a function. Here we are naming a transform "plus200" so we can reference it in the dom.
+      // You can also use transforms render the current value of a store after feeding it through a set of functions. Here we are naming a transform "plus200" so we can reference it in the html.
       reactinity.newTransform("plus200", (v) => v + 200);
     </script>
 
@@ -100,7 +94,7 @@
 
       // Imagine a function that updates specific fields of an object and displays the changes immediately
       function updateLastClicked() {
-        // TODO: Consider an update field function for more fine-grained
+        // TODO: Consider an updateField store method for more fine-grained updates (instead of having to edit the whole object)
         obj.update((v) => {
           v.interactions.lastClicked = Date.now();
           return v;
@@ -124,6 +118,14 @@
     <!-- ---------------------------------------------------------------- -->
     <!-- ARRAY EXAMPLE -------------------------------------------------- -->
     <!-- ---------------------------------------------------------------- -->
+
+    <!-- Keep the ArrayStore templates from showing from the start. is there are better way to do this ? Maybe we shouldn't care and just do it js asap? -->
+    <style>
+      [re-template] {
+        display: none;
+      }
+    </style>
+
     <script>
       // Example Array Data
       const products = [
