@@ -176,12 +176,28 @@
           <div>
             <div>
               <!-- "re-field" works like "re" but for the field of the array objects -->
-              <h3 re-field="name"></h3>
+              <h3 re="this.name"></h3>
               <!-- "re-field" also accepts nested objects -->
-              <div re-field="country.name"></div>
+              <div re="this.country.name"></div>
             </div>
             <!-- "re-transform" still work with "re-field"s -->
-            <div re-field="price" re-transform="dollars"></div>
+            <div re="this.price" re-transform="dollars"></div>
+
+            <!-- JUST TESING -->
+            <div
+              re-array="this.variants"
+              re-change
+              onchange="selectedColor(event.item)"
+            >
+              <!-- I expect the event data to already have some data about the item, but really we also need an item.item on of each of the inputs to have a change listener -->
+              <input re-template re-value="this.color" type="radio" name="c" />
+            </div>
+
+            <div re-array="this.variants">
+              <div re-array="this.sizes">
+                <input re-template re-value="this" type="radio" name="s" />
+              </div>
+            </div>
           </div>
 
           <!-- Use re-click to attach the array item to the click event object. Now it is easy to know which data related to the button being clicked -->

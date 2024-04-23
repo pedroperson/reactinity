@@ -11,6 +11,9 @@ class Reactinity {
     if (this.stores.hasOwnProperty(name)) {
       throw new Error(`A store named '${name}' already exists.`);
     }
+    if (name === "this") {
+      throw new Error(`Calling a store "this" is not allowed.`);
+    }
 
     this.stores[name] = new Store(initialValue);
     return this.stores[name];
@@ -18,11 +21,12 @@ class Reactinity {
 
   // TODO: IDK: Should the newStore just check for array type and automatically create an aray store? the worry there is what is the value starts out as undefined or null, then we wont know. For now I am going to keep newArrayStore as a separate function for clarity, joining them later will be trivial
   newArrayStore(name, initialValue) {
-    if (!this.stores[name]) {
-      this.stores[name] = new ArrayStore(initialValue);
-      return this.stores[name];
+    if (this.stores.hasOwnProperty(name)) {
+      throw new Error(`[iScream] a store with the id '${name}' already exists`);
     }
-    throw new Error(`[iScream] a store with the id '${name}' already exists`);
+
+    this.stores[name] = new ArrayStore(initialValue);
+    return this.stores[name];
   }
 
   newTransform(name, fun) {
@@ -77,26 +81,42 @@ class Store {
 }
 
 const HTMSMELLER = {
-  attachBasic: (stores, transforms) => {
-    const tag = "re";
+  attachBasic: (stores, transforms, parent = null) => {
+    const attr = "re";
 
-    document.querySelectorAll(`[${tag}]`).forEach((el) => {
-      const store = elementStore(el, tag, stores);
-      store.subscribe((newVal) => {
-        DOMINATOR.innerText(newVal, el, tag, transforms);
+    if (!parent) {
+      parent = document;
+    }
+    // TODO: The question is: what happens if a template has a re="loggedIn" subscription? Answer: we need to call this exact function from the array, and initialize the subscription from there, but instead of using document for the search, we use the array parent element. One can see how this could cause performance issue if there are 1000s of elements subscribing to a store that is changing often, but lets keep going for now.
+
+    // Avoiding subscribing elements inside a template, as they will be initialized after cloning by re-array.
+    parent
+      .querySelectorAll(`[${attr}]:not([re-template] [${attr}])`)
+      .forEach((el) => {
+        const storeName = elementStoreName(el, attr);
+        if (!storeName || !stores.hasOwnProperty(storeName))
+          throw "ERROR invalid store name " + storeName;
+
+        const store = stores[storeName];
+
+        store.subscribe((newVal) => {
+          DOMINATOR.innerText(newVal, el, attr, transforms);
+        });
       });
-    });
   },
   attachArray: (stores, transforms) => {
     const tag = "re-array";
 
-    document.querySelectorAll(`[${tag}]`).forEach((el) => {
-      const store = elementStore(el, tag, stores);
-      // Fancy subscribe to respond to fine grained updates
-      const sub = new ArrayStoreUISubscriber(el, transforms);
-
-      store.subscribe(sub);
-    });
+    document
+      // TODO: Dont do the not array, use a starts with "this." check instead?
+      .querySelectorAll(`[${tag}]:not([re-array] [${tag}])`)
+      .forEach((el) => {
+        const store = elementStore(el, tag, stores);
+        // TODO: when look for the template, make sure its using a direct child selector
+        // Fancy subscribe to respond to fine grained updates
+        const sub = new ArrayStoreUISubscriber(el, transforms);
+        store.subscribe(sub);
+      });
   },
 };
 
@@ -134,27 +154,33 @@ const DOMINATOR = {
   // }
 };
 
-function elementStore(el, tag, stores) {
-  // Find the store related to the element
-  const attr = el.getAttribute(tag);
-  let firstPeriod = attr.indexOf(".");
-  firstPeriod = firstPeriod === -1 ? attr.length : firstPeriod;
+function elementStoreName(el, attr) {
+  const str = el.getAttribute(attr);
+  let firstPeriod = str.indexOf(".");
+  firstPeriod = firstPeriod === -1 ? str.length : firstPeriod;
+  return str.substring(0, firstPeriod);
+}
 
-  const storeName = attr.substring(0, firstPeriod);
+function elementTransformNames(el) {
+  const attribute = el.getAttribute("re-transform");
+  if (!attribute) return [];
+
+  return attribute
+    .split(",")
+    .map((s) => s.trim())
+    .filter((v) => !!v);
+}
+
+function elementStore(el, tag, stores) {
+  const storeName = elementStoreName(el, tag);
   if (!storeName || !stores.hasOwnProperty(storeName))
     throw "ERROR invalid store name " + storeName;
 
   return stores[storeName];
 }
-function elementTransforms(el, transforms) {
-  // Transform names are stored in the element attribute, separated by commas
-  const attribute = el.getAttribute("re-transform");
-  if (!attribute) return [];
 
-  const names = attribute
-    .split(",")
-    .map((s) => s.trim())
-    .filter((v) => !!v);
+function elementTransforms(el, transforms) {
+  const names = elementTransformNames(el);
 
   if (names.some((t) => !transforms.hasOwnProperty(t)))
     throw "ERROR Invalid transform " + attribute;
