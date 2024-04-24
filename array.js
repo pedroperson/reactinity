@@ -1,9 +1,34 @@
+/**
+ * @interface ArraySubscriber
+ * Allows for fine grained updates
+ *
+ * @method append
+ * @param {*} val
+ *
+ * @method set
+ * @param {Array} newArray
+ *
+ * @method updateField
+ * @param {*} data
+ * @param {string} field
+ * @param {Function} fn
+ *
+ * @method deleteRow
+ * @param {*} data
+ *
+ * @method overwriteRow
+ * @param {*} data
+ * @param {*} newData
+ */
+
 // ArrayStore is a variant of a store that allows for fine grained updates to arrays and their elements. It allows for normal subscription and well as a fancy subscription that gets called at every specific update allows for efficient dom updates targeting what is changing
 class ArrayStore {
   constructor(array) {
     /** @type {Array}*/
     this.array = array;
+    /** @type {Array<Function>} */
     this.callbackSubscribers = [];
+    /** @type {Array<ArraySubscriber>} */
     this.fancySubscribers = [];
   }
 
@@ -12,81 +37,54 @@ class ArrayStore {
   }
 
   subscribe(subscriber) {
-    // A subscriber has the same public interface as the array store (except for the subscribe function)
-    if (typeof subscriber === "function") {
-      this.callbackSubscribers.push(subscriber);
-      subscriber(this.array);
-      return () => {
-        const i = this.callbackSubscribers.findIndex((s) => s === subscriber);
-        if (i === -1) throw "array unsubscribe failed to find sub";
-        this.callbackSubscribers.splice(i, 1);
-      };
-    }
-
-    this.fancySubscribers.push(subscriber);
-    // run the overwrite function immediately
-    subscriber.set(this.array);
-    return () => {
-      const i = this.fancySubscribers.findIndex((s) => s === subscriber);
+    const remove = (arr, item) => {
+      const i = arr.findIndex((s) => s === item);
       if (i === -1) throw "array unsubscribe failed to find sub";
-      this.fancySubscribers.splice(i, 1);
+      arr.splice(i, 1);
     };
-  }
 
-  append(val) {
-    this.array.push(val);
-    this.callbackSubscribers.forEach((c) => c(this.array));
-    this.fancySubscribers.forEach((s) => s.append(val));
+    // A subscriber has the same public interface as the array store (except for the subscribe function)
+    switch (typeof subscriber) {
+      case "function":
+        // We keep functions with the simple callbacks
+        this.callbackSubscribers.push(subscriber);
+        // Run the subscriber callback immediately
+        subscriber(this.array);
+        // Return unsubscribe
+        return () => remove(this.callbackSubscribers, subscriber);
+
+      // More complex subscriber objects have hooks for each array function, so we keep them separate
+      case "object":
+        this.fancySubscribers.push(subscriber);
+        subscriber.set(this.array);
+        return () => remove(this.fancySubscribers, subscriber);
+
+      default:
+        throw "Invalid subscriber";
+    }
   }
 
   set(newArray) {
     this.array = newArray;
-    this.callbackSubscribers.forEach((c) => c(this.array));
-    this.fancySubscribers.forEach((s) => s.set(newArray));
+    this.broadcastChange((s) => s.set(newArray));
   }
 
-  // An idea for how to interact with a specific row in a way that sort of fits the normal flow of logic anyway, of checkforpresence->do something if some value if somethimg->update the data accordingly. I don't knwo that we need this to be a separate logic layer like this but it feels kinda good to use!
-  GETROW(where) {
+  append(val) {
+    this.array.push(val);
+    this.broadcastChange((s) => s.append(val));
+  }
+
+  /** Find a row in the store with the provided function, and wraps it with method to edit it reactively */
+  getEditableRow(where) {
     const row = this.array.find(where);
     if (!row) return undefined;
-    return {
-      updateField: (field, fn) => {
-        row[field] = fn(row[field]);
+    return new EditableRow(row, this);
+  }
 
-        this.callbackSubscribers.forEach((c) => c(this.array));
-
-        this.fancySubscribers.forEach((s) => {
-          s.updateField(row, field, fn);
-        });
-      },
-      delete: () => {
-        const i = this.array.findIndex((r) => r === row);
-        if (i === -1) return;
-        this.array.splice(i, 1);
-
-        // TODO: Do we have to unsubscribe??
-
-        this.callbackSubscribers.forEach((c) => c(this.array));
-
-        this.fancySubscribers.forEach((s) => {
-          s.deleteRow(row);
-        });
-      },
-      overwrite: (newVal) => {
-        const i = this.array.findIndex((r) => r === row);
-        if (i === -1) return;
-        this.array.splice(i, 1, newVal);
-
-        // TODO: Do we have to unsubscribe??
-
-        this.callbackSubscribers.forEach((c) => c(this.array));
-
-        this.fancySubscribers.forEach((s) => {
-          s.overwriteRow(row, newVal);
-        });
-      },
-      data: row,
-    };
+  // PRIVATE?
+  broadcastChange(fancyCallback) {
+    this.callbackSubscribers.forEach((c) => c(this.array));
+    this.fancySubscribers.forEach(fancyCallback);
   }
 }
 
@@ -120,12 +118,16 @@ class ArrayStoreUISubscriber {
       return el.POINTER_TO_DATA === data;
     });
 
-    const attr = "re-field";
+    const attr = "re";
 
     el.querySelectorAll(`[${attr}="${field}"]`).forEach((el) => {
+      console.log("set field thing", { data, el });
       DOMINATOR.innerText(data, el, attr, this.transforms);
     });
 
+    // TODO: Should probably start here
+
+    // TODO: basic.js has better functions for this
     const transformWithElement = (v, el) => {
       const transform = this.transforms[el.getAttribute("re-transform")];
       if (transform) return transform(v);
@@ -159,6 +161,7 @@ class ArrayStoreUISubscriber {
       return el.POINTER_TO_DATA === data;
     });
 
+    // TODO: perform unsubscribe?
     console.log("deleting ROW", el, el._unsubs);
     this.parent.removeChild(el);
   }
@@ -170,6 +173,8 @@ class ArrayStoreUISubscriber {
 
     const newNode = this.cloneTemplate(newData, this.template, this.transforms);
     this.parent.insertBefore(newNode, el);
+
+    // TODO: perform unsubscribe?
     console.log("overwriteRow", el, el._unsubs);
     this.parent.removeChild(el);
   }
@@ -181,7 +186,9 @@ class ArrayStoreUISubscriber {
     // We will use the POINTER_TO_DATA field to find the this element later. In a way we are using the pointer value as the item/element id. So ideally we don't need any extra memory other than our extra pointer value in the clone element.
     Object.assign(clone, { POINTER_TO_DATA: itemData });
 
+    // TODO: Just use [re], field is now dictated with "this" as the store name
     clone.querySelectorAll("[re-field]").forEach((el) => {
+      // TODO: basic.js has better functions
       const field = el.getAttribute("re-field");
       const transName = el.getAttribute("re-transform");
 
@@ -190,6 +197,7 @@ class ArrayStoreUISubscriber {
     });
 
     clone.querySelectorAll("[re-show-field]").forEach((el) => {
+      // TODO: use updateClass or break this out into a better function for all classes
       const field = el.getAttribute("re-show-field");
       const transName = el.getAttribute("re-transform");
       const transform = this.transforms[transName];
@@ -208,6 +216,7 @@ class ArrayStoreUISubscriber {
       updateClass(el, itemData, this.transforms);
     });
 
+    // TODO: should re-clicks get a field value? maybe a "this" most of the time, but what if we want to pass this.ass ? may be way too much of a hassle, just let the user do it, we are already giving them the object so they can write the exact same thing in the receiver function instead
     clone.querySelectorAll("[re-click]").forEach((el) => {
       // Hijack the click behavior. We do this to allow the user to use good old html and then we come in and add the item data to the click event to make that easy-peasy
       const original = el.onclick;
@@ -221,6 +230,7 @@ class ArrayStoreUISubscriber {
     });
 
     if (clone.hasAttribute("re-click")) {
+      // TODO: Break this out into a general function
       const original = clone.onclick;
       clone.onclick = null;
       clone.removeAttribute("onclick");
@@ -232,5 +242,49 @@ class ArrayStoreUISubscriber {
     }
 
     return clone;
+  }
+}
+
+/**  Represents an editable row within a data store and provides methods to manipulate and track changes to a specific row. */
+class EditableRow {
+  constructor(row, arrayStore) {
+    this.row = row;
+    this.arrayStore = arrayStore;
+  }
+
+  get() {
+    return this.val;
+  }
+
+  /** Updates a specified field in the row using a provided function and broadcasts the change. */
+  updateField(field, updateFn) {
+    // TODO: should i allow for field inside field? like a.b.c["d"]
+    this.row[field] = updateFn(this.row[field]);
+
+    this.arrayStore.broadcastChange((s) => {
+      s.updateField(this.row, field, updateFn);
+    });
+  }
+
+  /**  Deletes the current row from the array store and broadcasts the deletion. */
+  delete() {
+    const i = this.arrayStore.array.findIndex((r) => r === this.row);
+    if (i === -1) return;
+    this.arrayStore.array.splice(i, 1);
+
+    this.arrayStore.broadcastChange((s) => {
+      s.deleteRow(this.row);
+    });
+  }
+
+  /** Replaces the current row with a new value in the array store and broadcasts the update. */
+  overwrite(newVal) {
+    const i = this.arrayStore.array.findIndex((r) => r === this.row);
+    if (i === -1) return;
+    this.arrayStore.array.splice(i, 1, newVal);
+
+    this.arrayStore.broadcastChange((s) => {
+      s.overwriteRow(this.row, newVal);
+    });
   }
 }
