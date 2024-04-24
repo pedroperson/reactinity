@@ -34,6 +34,13 @@
       }
     </style>
 
+    <style>
+      .red {
+        border: 1px solid red;
+        color: red;
+      }
+    </style>
+
     <!-- Import the js code however you want -->
     <script src="/basic.js"></script>
 
@@ -115,6 +122,19 @@
       <button onclick="updateLastClicked()">Update interaction</button>
     </section>
 
+    <!-- TODO:----------------------------------------------------------- -->
+    <!-- CONDITIONAL DISPLAY EXAMPLE ------------------------------------ -->
+    <!-- ---------------------------------------------------------------- -->
+
+    <style>
+      [re-show]:not(.re-show) {
+        display: none;
+      }
+      [re-show-field]:not(.re-show) {
+        display: none;
+      }
+    </style>
+
     <!-- ---------------------------------------------------------------- -->
     <!-- ARRAY EXAMPLE -------------------------------------------------- -->
     <!-- ---------------------------------------------------------------- -->
@@ -161,6 +181,8 @@
         return new Intl.NumberFormat("en-US", opts).format(cents / 100);
       });
 
+      reactinity.newTransform("expensive", (cents) => cents > 10000);
+
       function addToCart(product) {
         console.log("TODO: add to cart", product);
       }
@@ -176,12 +198,21 @@
           <div>
             <div>
               <!-- "re-field" works like "re" but for the field of the array objects -->
-              <h3 re="this.name"></h3>
+              <h3
+                re="this.name"
+                re-class="this.price"
+                re-class-name="red"
+                re-class-transform="expensive"
+              ></h3>
               <!-- "re-field" also accepts nested objects -->
               <div re="this.country.name"></div>
             </div>
             <!-- "re-transform" still work with "re-field"s -->
             <div re="this.price" re-transform="dollars"></div>
+
+            <div re-show="this.price" re-class-transform="expensive">
+              WOW EXPENSIVE
+            </div>
 
             <!-- JUST TESING -->
             <div
@@ -194,8 +225,11 @@
             </div>
 
             <div re-array="this.variants">
-              <div re-array="this.sizes">
-                <input re-template re-value="this" type="radio" name="s" />
+              <div re-template re-array="this.sizes">
+                <div re-template>
+                  <div>The size: <span re="this"></span></div>
+                  <input re-value="this" type="radio" name="s" />
+                </div>
               </div>
             </div>
           </div>

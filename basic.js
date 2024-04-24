@@ -122,6 +122,7 @@ const HTMSMELLER = {
 
 const DOMINATOR = {
   innerText: function (newVal, el, tag, transforms) {
+    // Drill down to the desired field in the object
     newVal = traverseElementFields(newVal, el, tag);
     // Transform the value before rendering
     elementTransforms(el, transforms).forEach((t) => (newVal = t(newVal)));
@@ -132,26 +133,34 @@ const DOMINATOR = {
       el.innerText = newVal;
     }
   },
-  // class: function(item, el ,tag, transforms) {
-  //     const attr = el.getAttribute(tag);
-  //     const fields = attr.split(",").map((s) => s.trim());
-
-  //     if (fields.length < 3)
-  //       throw `invalid class field format "${attr}". Expected "className,field,transforms".`;
-  //     const [className, field, ...transforms] = fields;
-  //     let v = item[field];
-  //     if (transforms && transforms.length > 0)
-  //       transforms.forEach((transform) => {
-  //         v = transforms[transform](v);
-  //       });
-  //     v = !!v;
-  //     if (v && !el.classList.contains(className)) {
-  //       el.classList.add(className);
-  //     } else if (!v && el.classList.contains(className)) {
-  //       el.classList.remove(className);
-  //     }
-  //   }
-  // }
+  highjackClick: (itemData, el) => {
+    // Hijack the click behavior. We do this to allow the user to use good old html and then we come in and add the item data to the click event to make that easy-peasy
+    const original = el.onclick;
+    el.onclick = null;
+    el.removeAttribute("onclick");
+    // Now we write our event customization layer so that the user has easy access to the item in the array related to the button being clicked
+    el.addEventListener("click", (event) => {
+      event = Object.assign(event, { item: itemData });
+      original(event);
+    });
+  },
+  updateClass: (el, item, allTransforms, className, attr = "re") => {
+    // Drill down to field in object
+    let shouldShow = traverseElementFields(item, el, attr);
+    // Transform value according to "re-class-transform" attribute
+    elementTransforms(el, allTransforms, "re-class-transform").forEach(
+      (t) => (shouldShow = t(shouldShow))
+    );
+    // Force it into a boolean to avoid weird bugs
+    shouldShow = !!shouldShow;
+    // Conditionally add/remove the class
+    if (shouldShow) {
+      // Handle multiple classes spaced by " " space character
+      className.split(" ").forEach((c) => el.classList.add(c));
+    } else {
+      className.split(" ").forEach((c) => el.classList.remove(c));
+    }
+  },
 };
 
 function elementStoreName(el, attr) {
@@ -161,8 +170,8 @@ function elementStoreName(el, attr) {
   return str.substring(0, firstPeriod);
 }
 
-function elementTransformNames(el) {
-  const attribute = el.getAttribute("re-transform");
+function elementTransformNames(el, attr = "re-transform") {
+  const attribute = el.getAttribute(attr);
   if (!attribute) return [];
 
   return attribute
@@ -179,8 +188,8 @@ function elementStore(el, tag, stores) {
   return stores[storeName];
 }
 
-function elementTransforms(el, transforms) {
-  const names = elementTransformNames(el);
+function elementTransforms(el, transforms, attr) {
+  const names = elementTransformNames(el, attr);
 
   if (names.some((t) => !transforms.hasOwnProperty(t)))
     throw "ERROR Invalid transform " + attribute;
