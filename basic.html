@@ -126,14 +126,30 @@
     <!-- CONDITIONAL DISPLAY EXAMPLE ------------------------------------ -->
     <!-- ---------------------------------------------------------------- -->
 
+    <!-- Add a global style to hide templates by default -->
     <style>
       [re-show]:not(.re-show) {
         display: none;
       }
-      [re-show-field]:not(.re-show) {
-        display: none;
-      }
     </style>
+
+    <script>
+      const showBoxStore = reactinity.newStore("showBox", false);
+
+      reactinity.newTransform("showOrHide", (v) =>
+        !v ? "Show Box" : "Hide Box"
+      );
+    </script>
+
+    <section>
+      <!-- Use a button to toggle the visibility of the element with re-show as well as the text of the button -->
+      <button
+        onclick="showBoxStore.update(v=>!v)"
+        re="showBox"
+        re-transform="showOrHide"
+      ></button>
+      <div re-show="showBox">I start hidden!</div>
+    </section>
 
     <!-- ---------------------------------------------------------------- -->
     <!-- ARRAY EXAMPLE -------------------------------------------------- -->

@@ -47,6 +47,7 @@ class Reactinity {
     // Turn DOM elements reactive
     window.addEventListener("DOMContentLoaded", () => {
       HTMSMELLER.attachBasic(this.stores, this.transforms);
+      HTMSMELLER.attachShowHide(this.stores, this.transforms);
       HTMSMELLER.attachArray(this.stores, this.transforms);
     });
   }
@@ -101,6 +102,25 @@ const HTMSMELLER = {
 
         store.subscribe((newVal) => {
           DOMINATOR.innerText(newVal, el, attr, transforms);
+        });
+      });
+  },
+  attachShowHide: (stores, transforms) => {
+    const attr = "re-show";
+
+    document
+      .querySelectorAll(`[${attr}]:not([re-template] [${attr}])`)
+      .forEach((el) => {
+        console.log("SHOWIDE", el);
+        const storeName = elementStoreName(el, attr);
+        if (!storeName || !stores.hasOwnProperty(storeName))
+          throw "ERROR invalid store name " + storeName;
+
+        const store = stores[storeName];
+
+        store.subscribe((newVal) => {
+          console.log("did a new show", { newVal, el });
+          DOMINATOR.updateClass(el, newVal, transforms, "re-show", attr);
         });
       });
   },
