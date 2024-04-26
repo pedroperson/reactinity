@@ -112,9 +112,12 @@ class ArraySubscriber {
 // TODO: Now we do this part!
 
 class ArrayStoreUISubscriber {
-  constructor(parentElement, transforms) {
+  constructor(parentElement, stores, transforms) {
     this.parent = parentElement;
+    this.stores = stores;
     this.transforms = transforms;
+
+    this.storesISubscribeTo = [];
     // An array container will have a template to be repeated
     this.template = this.parent.querySelector("[re-template]");
     if (!this.template)
@@ -274,6 +277,29 @@ class ArrayStoreUISubscriber {
       're-class^="this."'
     );
 
+    // There might be buddies subscribing to a global store
+    let attr = "re";
+
+    clone
+      .querySelectorAll(notInArrayNotStartingWithThis(attr))
+      .forEach((el) => {
+        const store = elementStore(el, attr, this.stores);
+        // Update the contents based on the current store value
+        DOMINATOR.innerText(store.get(), el, attr, this.transforms);
+
+        if (this.storesISubscribeTo.includes(store)) {
+          return;
+        }
+        // Subscribe to the store just once at the array level so we don't end up with thousands of subscriptions going for large arrays
+        this.storesISubscribeTo.push(store);
+
+        store.subscribe((v) => {
+          const storeName = elementStoreName(el, attr);
+          this.parent
+            .querySelectorAll(`[${attr}^=${storeName}]`)
+            .forEach((el) => DOMINATOR.innerText(v, el, attr, this.transforms));
+        });
+      });
     return clone;
   }
 }

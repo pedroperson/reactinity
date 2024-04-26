@@ -39,6 +39,7 @@ class Reactinity {
 
   defaultInit() {
     // Define your own data transforms to be used anywhere in the UI.
+    this.newTransform("not", (val) => !val);
     this.newTransform("number", (val) => Number(val));
     this.newTransform("length", (val) => val.length);
     this.newTransform("date", (unix) => new Date(unix).toLocaleDateString());
@@ -62,6 +63,9 @@ class Store {
   constructor(initialValue) {
     this.value = initialValue;
     this.subs = [];
+  }
+  get() {
+    return this.value;
   }
 
   subscribe(method) {
@@ -116,7 +120,7 @@ const ROOT_ATTRS = [
     attr: "re-array",
     fn: (stores, transforms, attr) => (el) => {
       // Fancy subscribe to respond to fine grained updates
-      const sub = new ArrayStoreUISubscriber(el, transforms);
+      const sub = new ArrayStoreUISubscriber(el, stores, transforms);
       elementStore(el, attr, stores).subscribe(sub);
     },
   },
@@ -204,7 +208,7 @@ function elementTransforms(el, transforms, attr) {
   const names = elementTransformNames(el, attr);
 
   if (names.some((t) => !transforms.hasOwnProperty(t)))
-    throw "ERROR Invalid transform " + attribute;
+    throw "ERROR Invalid transform " + attr;
 
   return names.map((name) => transforms[name]);
 }
@@ -220,4 +224,10 @@ function traverseElementFields(val, el, tag) {
 
 function notInArray(attr, query) {
   return `[${query || attr}]:not([re-array] [${attr}])`;
+}
+
+function notInArrayNotStartingWithThis(attr, query) {
+  return `[${
+    query || attr
+  }]:not([re-array] [${attr}]):not([${attr}^="this."]):not([${attr}="this"])`;
 }
