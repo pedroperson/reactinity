@@ -213,8 +213,8 @@ function elementTransforms(el, transforms, attr) {
   return names.map((name) => transforms[name]);
 }
 
-function traverseElementFields(val, el, tag) {
-  el.getAttribute(tag)
+function traverseElementFields(val, el, attr) {
+  el.getAttribute(attr)
     .split(".")
     .slice(1) // skip the store's name
     .forEach((field) => (val = val[field]));
@@ -230,4 +230,8 @@ function notInArrayNotStartingWithThis(attr, query) {
   return `[${
     query || attr
   }]:not([re-array] [${attr}]):not([${attr}^="this."]):not([${attr}="this"])`;
+}
+
+function startsWithThis(attr) {
+  return `[${attr}^="this."],[${attr}="this"]`;
 }

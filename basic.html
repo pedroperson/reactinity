@@ -295,17 +295,26 @@
               onchange="selectedColor(event.item)"
             >
               <!-- I expect the event data to already have some data about the item, but really we also need an item.item on of each of the inputs to have a change listener -->
-              <input re-template re-value="this.color" type="radio" name="c" />
+              <span re-template >
+                <span re="this.color"></span>
+                <input re-value="this.color" type="radio" name="c" />
+              </span>
             </div>
 
             <div re-array="this.variants">
-              <!-- TODO: an array of base values (string or integer or whatever) -->
-              <div re-template re-array="this.sizes">
-                <div re-template>
-                  <!-- TODO: rendering the base value -->
-                  <div>The size: <span re="this"></span></div>
+              <div re-template >
+                <div>sizes for 
+                  <span re="this.color" ></span>:
+                   <span re="this.sizes" re-transform="length"></span>
+                  </div>
+              <div re-array="this.sizes">
+                <span re-template>
+                  <!-- TODO: rendering the base value is not working-->
+                  <span re="this" style="text-transform: capitalize;"></span>  
                   <input re-value="this" type="radio" name="s" />
-                </div>
+                 
+                </span>
+              </div>
               </div>
             </div>
           </div>

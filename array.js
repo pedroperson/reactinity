@@ -105,7 +105,7 @@ class ArraySubscriber {
   append(val) {}
   deleteRow(data) {}
   overwriteRow(data, newData) {}
-  /** @param {*} data @param {string} field @param {Function} fn */
+  /** @param {string} field @param {Function} fn */
   updateField(data, field, fn) {}
 }
 
@@ -227,21 +227,29 @@ class ArrayStoreUISubscriber {
     // We will use the POINTER_TO_DATA field to find the this element later. In a way we are using the pointer value as the item/element id. So ideally we don't need any extra memory other than our extra pointer value in the clone element.
     Object.assign(clone, { POINTER_TO_DATA: itemData });
 
-    // Populate field subscribers
+    this._populateClone(clone, itemData);
 
-    const update = (attr, fn, query = null) => {
+    return clone;
+  }
+
+  _populateClone(clone, itemData) {
+    const update = (attr, fn, query = null, otherQuery = null) => {
       // Perform changes on the clone itself in case of simple data
       if (clone.hasAttribute(attr)) fn(clone);
       // Update targeted children with the provided function
       const els = clone.querySelectorAll(notInArray(attr, query));
       els.forEach(fn);
+      if (otherQuery) {
+        const els = clone.querySelectorAll(notInArray(attr, otherQuery));
+        els.forEach(fn);
+      }
     };
 
-    // TODO: what if the subscribing is to a different store, but we havent subscribed it yet because it was inside a template
     update(
       "re",
       (el) => DOMINATOR.innerText(itemData, el, "re", this.transforms),
-      're^="this."'
+      're^="this."',
+      're="this"'
     );
 
     // Modify the onclick event to include our item data
@@ -258,9 +266,9 @@ class ArrayStoreUISubscriber {
           "re-show",
           "re-show"
         ),
-      're-show^="this."'
+      're-show^="this."',
+      're-show="this"'
     );
-
     // Conditionally add class to item listeners
     update(
       "re-class",
@@ -274,7 +282,8 @@ class ArrayStoreUISubscriber {
           "re-class"
         );
       },
-      're-class^="this."'
+      're-class^="this."',
+      're-class="this"'
     );
 
     // There might be buddies subscribing to a global store
@@ -300,6 +309,48 @@ class ArrayStoreUISubscriber {
             .forEach((el) => DOMINATOR.innerText(v, el, attr, this.transforms));
         });
       });
+
+    // TODO: There can be an array inside this array. this is gonna be tough
+    attr = "re-array";
+    clone.querySelectorAll(notInArray(attr)).forEach((el) => {
+      const storeName = elementStoreName(el, attr);
+      console.log("INNER ARRAY", el, storeName);
+      // TODO: The store name can be a global array store or "this"
+      if (storeName === "this") {
+        let v = traverseElementFields(itemData, el, attr);
+        console.log("traversed", itemData, v);
+        // IDK about this
+        if (!v || v.length === 0) return;
+
+        if (!Array.isArray(v))
+          throw new Error(
+            "a 're-array' needs to reference to an array, not a type of:" +
+              typeof v
+          );
+
+        // Now we want to clone the template and fill it out with our data
+        // At least the template is guaranteed to still be there
+        const template = el.querySelector("[re-template]");
+        if (!template)
+          throw new Error("a 're-array' needs a template as its first child");
+
+        while (el.firstChild) {
+          el.removeChild(el.lastChild);
+        }
+
+        v.forEach((item) => {
+          const clone = template.cloneNode(true);
+          clone.removeAttribute("re-template");
+          console.log("populate clone");
+          this._populateClone(clone, item);
+
+          el.appendChild(clone);
+        });
+
+        // TODO: this is
+      }
+    });
+
     return clone;
   }
 }
