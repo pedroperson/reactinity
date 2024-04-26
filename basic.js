@@ -57,6 +57,7 @@ class Reactinity {
   }
 }
 
+// TODO: Consider an updateField store method for more fine-grained updates (instead of having to edit the whole object)
 class Store {
   constructor(initialValue) {
     this.value = initialValue;
@@ -123,6 +124,7 @@ const ROOT_ATTRS = [
 
 const DOMINATOR = {
   innerText: function (newVal, el, tag, transforms) {
+    // TODO: should we copy this value before editing it? cus if we are modifying an object, the transforms may end upmodifying the actual object. One solution here is to not allow objects, but thats shit. what if i what the length of an array of something, or the object.keys.length ? So I guess the only way out if to make a copy of the data. alternatively I can CHECK if its a simple type and then we dont need to copy, but if its an object we need some sort of deep(?) copy.
     // Drill down to the desired field in the object
     newVal = traverseElementFields(newVal, el, tag);
     // Transform the value before rendering

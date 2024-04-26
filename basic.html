@@ -11,7 +11,8 @@
       * {
         box-sizing: border-box;
       }
-      span[re] {
+
+      [re] {
         font-weight: 700;
       }
 
@@ -20,21 +21,12 @@
         max-width: 1400px;
         margin-left: auto;
         margin-right: auto;
-        padding-left: 2em;
-        padding-right: 2em;
-
-        margin-top: 2em;
-      }
-
-      @media (max-width: 768px) {
-        section {
-          padding-left: 1em;
-          padding-right: 1em;
-        }
+        padding: 1em 1.5em;
+        border-bottom: 1px solid black;
       }
     </style>
 
-    <!-- Import the js code however you want -->
+    <!-- Import the library js code -->
     <script src="/basic.js"></script>
 
     <!-- ---------------------------------------------------------------- -->
@@ -45,64 +37,92 @@
       reactinity.defaultInit();
     </script>
 
-    <!-- ---------------------------------------------------------------- -->
-    <!-- 1. BASIC EXAMPLES ---------------------------------------------- -->
-    <!-- We'll start with a simple counter example----------------------- -->
-    <script>
-      // The counter
-      // Create a basic integer store
-      const countStore = reactinity.newStore("count", 0);
-      // Write some functions that interact with the store
-      const Counter = {
-        up: () => countStore.update((v) => v + 1),
-        down: () => countStore.update((v) => v - 1),
-        reset: () => countStore.set(0),
-      };
-
-      // Create a store whose value depends on another
-      const relatedStore = reactinity.newStore("related", countStore.value);
-      countStore.subscribe((v) => relatedStore.set(v + 100));
-
-      // You can also use transforms render the current value of a store after feeding it through a set of functions. Here we are naming a transform "plus200" so we can reference it in the html.
-      reactinity.newTransform("plus200", (v) => v + 200);
-    </script>
+    <!-- --------------------------------------------------------------- -->
+    <!-- 1. SIMPLE STORES ---------------------------------------------- -->
+    <!-- We'll start with a simple counter example---------------------- -->
 
     <section>
+      <!-- DEFINE THE STORE -------------------------------------------- -->
+
+      <script>
+        // Create a basic integer store to track the value of our counter. Stores turn your data reactive, as we will see later.
+        const countStore = reactinity.newStore("count", 0);
+      </script>
+
+      <!-- Connect the value of a store to an element with the *re* attribute. Everytime the store named in the attribute changes, its inner text will change to the same value. Notice we use the name "count" which is the name we gave to the countStore during initialization. -->
       Count = <span re="count"></span>;
-      <span>C + 100 = <span re="related"></span>;</span>
-      <span>C + 200 = <span re="count" re-transform="plus200"></span>;</span>
+
+      <!-- MANIPULATE THE STORE ---------------------------------------- -->
+      <script>
+        // You can manipulate the value of a store using the *update* and *set* methods. Both methods set a new value to a store and update its subscribers with the it.
+        const Counter = {
+          // *update* takes a function that receives the current store value and returns its new value
+          up: () => countStore.update((v) => v + 1),
+          down: () => countStore.update((v) => v - 1),
+          // *set* takes in the new value of the store
+          reset: () => countStore.set(0),
+        };
+      </script>
+
       <div>
         <button onclick="Counter.down()">-1</button>
         <button onclick="Counter.up()">+1</button>
         <button onclick="Counter.reset()">Reset</button>
       </div>
+
+      <!-- TRANSFORMS ------------------------------------------------- -->
+      <script>
+        // We don't always want to render the value of the store directly. To modify the value we render we can use *transforms*. A *transform* is a function that takes a value, modifies it and returns its new value feeding it through a set of functions.
+        // Reactinity has a newTransform hook where you can name and define a transform function that you can reference in the HTML. Here we are naming a transform "plus200" so we can reference it in the html. It simply take a value in and adds 200 to it.
+        reactinity.newTransform("plus200", (v) => v + 200);
+        // "timesTwo" instead just doubles a value, in the elements below we will use it in a chain with "plus200".
+        reactinity.newTransform("timesTwo", (v) => v * 2);
+      </script>
+
+      <!-- Using the re attribute again to subscribe to the "count" store, then running it through our plus200 transform before rendering its value plus 200 -->
+      <div>C + 200 = <span re="count" re-transform="plus200"></span></div>
+
+      <!-- We can chain transforms by using commas as separators. In this case we expect the value of the "count" store to get 200 added to it then doubled. The transforms run in order from left to right.-->
+      <div>
+        (C + 200) * 2 = <span re="count" re-transform="plus200,timesTwo"></span>
+      </div>
+
+      <!-- RELATING STORES ---------------------------------------------- -->
+      <script>
+        // Stores can be connected to another store's value through the *subscribe* function.
+        const relatedStore = reactinity.newStore("related", countStore.value);
+        // Here we perform some change to the store value and update the value of our "relatedStore".
+        countStore.subscribe((v) => relatedStore.set(v + 147));
+      </script>
+      <!-- Again, we subscribe to the store using the "re" attribute. -->
+      <div>C + 147 = <span re="related"></span></div>
     </section>
 
     <!-- ---------------------------------------------------------------- -->
     <!-- OBJECT EXAMPLE ------------------------------------------------- -->
     <!-- ---------------------------------------------------------------- -->
-    <script>
-      // Reactinity can handle more complex data types like objects.
-      const obj = reactinity.newStore("user", {
-        name: "Michael Travis",
-        joined: 1710853950,
-        // Using an object inside of another just to show off
-        interactions: {
-          lastClicked: 0,
-        },
-      });
-
-      // Imagine a function that updates specific fields of an object and displays the changes immediately
-      function updateLastClicked() {
-        // TODO: Consider an updateField store method for more fine-grained updates (instead of having to edit the whole object)
-        obj.update((v) => {
-          v.interactions.lastClicked = Date.now();
-          return v;
-        });
-      }
-    </script>
 
     <section>
+      <script>
+        // Reactinity can handle more complex data types like objects.
+        const userStore = reactinity.newStore("user", {
+          name: "Michael Travis",
+          joined: 1710853950,
+          // Using an object inside of another just to show off
+          interactions: {
+            lastClicked: 0,
+          },
+        });
+
+        // Imagine a function that updates specific fields of an object and displays the changes immediately
+        function updateLastClicked() {
+          userStore.update((v) => {
+            v.interactions.lastClicked = Date.now();
+            return v;
+          });
+        }
+      </script>
+
       <!-- Target store fields directly using object notation -->
       <div>Name: <span re="user.name"></span></div>
       <!-- Transform objet field values directly -->
@@ -117,9 +137,10 @@
 
     <!-- ---------------------------------------------------------------- -->
     <!-- CONDITIONAL DISPLAY EXAMPLE ------------------------------------ -->
-    <!-- ---------------------------------------------------------------- -->
+    <!-- Lets start by showing and hiding an element on click ----------- -->
 
     <!-- Add a global style to hide templates by default -->
+    <!-- NOT IDEAL HAVING TO DO THIS -->
     <style>
       [re-show]:not(.re-show) {
         display: none;
@@ -149,14 +170,6 @@
     <!-- TODO:----------------------------------------------------------- -->
     <!-- CLASS EXAMPLE -------------------------------------------------- -->
     <!-- ---------------------------------------------------------------- -->
-    <script>
-      const addClassStore = reactinity.newStore("addClass", false);
-
-      // Use a transform to conditionally display text
-      reactinity.newTransform("addOrRemoveClass", (v) =>
-        !v ? "Add Class" : "Remove Class"
-      );
-    </script>
 
     <!-- Define some custome classes to toggle -->
     <style>
@@ -169,6 +182,13 @@
       }
     </style>
 
+    <script>
+      const addClassStore = reactinity.newStore("addClass", false);
+      reactinity.newTransform("addOrRemoveClass", (v) =>
+        !v ? "Add Class" : "Remove Class"
+      );
+    </script>
+
     <section>
       <!-- Using a button to cause a data update -->
       <button
@@ -176,7 +196,7 @@
         re="addClass"
         re-transform="addOrRemoveClass"
       ></button>
-      <!-- Conditionally add classes inside re-class-name when the value of re-class is truthy after running them through the transform functions in re-class-transform. Classes can be separated by spaces -->
+      <!-- Conditionally add classes inside *re-class-name* when the value of *re-class* is truthy after running them through the transform functions in *re-class-transform*. Classes can be separated by spaces -->
       <!-- TODO: Perform a transform just to show it off -->
       <div
         re-class="addClass"
@@ -192,8 +212,10 @@
     <!-- ---------------------------------------------------------------- -->
 
     <!-- Bring array logic in -->
+    <!-- NOT IDEAL HAVING TO DO THIS -->
     <script src="/array.js"></script>
     <!-- Keep the ArrayStore templates from showing from the start. is there are better way to do this ? Maybe we shouldn't care and just do it js asap? -->
+    <!-- NOT IDEAL HAVING TO DO THIS -->
     <style>
       [re-template] {
         display: none;
@@ -277,14 +299,19 @@
             </div>
 
             <div re-array="this.variants">
+              <!-- TODO: an array of base values (string or integer or whatever) -->
               <div re-template re-array="this.sizes">
                 <div re-template>
+                  <!-- TODO: rendering the base value -->
                   <div>The size: <span re="this"></span></div>
                   <input re-value="this" type="radio" name="s" />
                 </div>
               </div>
             </div>
           </div>
+
+          <!-- TODO: Something to complicate us a bit.  A global store (not "this") inside an array needs to be subscribed by the array-->
+          <div>count: <span re="count"></span></div>
 
           <!-- Use re-click to attach the array item to the click event object. Now it is easy to know which data related to the button being clicked -->
           <button
