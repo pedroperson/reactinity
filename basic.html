@@ -214,7 +214,8 @@
     <!-- Bring array logic in -->
     <!-- NOT IDEAL HAVING TO DO THIS -->
     <script src="/array.js"></script>
-    <!-- Keep the ArrayStore templates from showing from the start. is there are better way to do this ? Maybe we shouldn't care and just do it js asap? -->
+
+    <!-- Keep the ArrayStore templates from showing from the start.-->
     <!-- NOT IDEAL HAVING TO DO THIS -->
     <style>
       [re-template] {
@@ -223,7 +224,7 @@
     </style>
 
     <script>
-      // Example Array Data
+      // Lets say we have an array of products that we want to display.
       const products = [
         {
           name: "shirt",
@@ -244,10 +245,9 @@
         },
       ];
 
-      // Turn said array into an ArrayStore. They are different from regular Store in that they have specific modification functions that allow the user to make fine-grained array modifications and have the DOM update accordingly.
-      // TODO: The big question here is whether they should be different at all... I definitely don't want to need two factories, newStore and new arrayStore; the function should be able to tell, but maybe it null or something at load, so maybe all Store has all the crazy functions but we would need to check the type every time the function got called, and then the user would have to wait to runtime to tell them they made a mistake... So maybe they should be totally different like they are now
+      // This time we are going to use an ArrayStore to make the array reactive. They are different from regular Stores in that they expose methods that allow the user to make fine-grained modifications to the array items and have the DOM update minimally.
+      
       const productsStore = reactinity.newArrayStore("products", products);
-      // newArrayStore("products", products);
 
       // Define a more complex transform to get the numeric prices that come in as integers of cents to a formatted dollar string
       reactinity.newTransform("dollars", (cents) => {
@@ -271,21 +271,21 @@
         <div re-template>
           <div>
             <div>
-              <!-- "re-field" works like "re" but for the field of the array objects -->
-              <h3
-                re="this.name"
-                re-class="this.price"
-                re-class-name="red"
-                re-class-transform="expensive"
-              ></h3>
-              <!-- "re-field" also accepts nested objects -->
+              <!-- using "re" with the *this* directive updates the content depending on the current array item's data. So for every "product" we will print the name field inside the h3 -->
+              <h3 re="this.name"></h3>
+              <!-- "re=this..." also accepts nested objects -->
               <div re="this.country.name"></div>
             </div>
-            <!-- "re-transform" still work with "re-field"s -->
-            <div re="this.price" re-transform="dollars"></div>
 
-            <div re-show="this.price" re-class-transform="expensive">
-              WOW EXPENSIVE
+            <div>
+              <!-- "re-transform" still works with array items. Here we modify an integer value to a pretty dollar ammount -->
+              <span re="this.price" re-transform="dollars"></span>
+
+              <!-- "re-show" also works with the *this* direction. Here we use a builtin transform ("not") to show this element when the value is not expensive. -->
+              <span re-show="this.price" re-class-transform="expensive,not">
+                (a bargain!)
+              </span>
+              </span>
             </div>
 
             <!-- JUST TESING -->
@@ -311,7 +311,7 @@
           </div>
 
           <!-- TODO: Something to complicate us a bit.  A global store (not "this") inside an array needs to be subscribed by the array-->
-          <div>count: <span re="count"></span></div>
+          <div>count: <span re="count" re-transform="dollars"></span></div>
 
           <!-- Use re-click to attach the array item to the click event object. Now it is easy to know which data related to the button being clicked -->
           <button
