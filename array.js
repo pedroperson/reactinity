@@ -221,59 +221,58 @@ class ArrayStoreUISubscriber {
     const clone = this.template.cloneNode(true);
     clone.removeAttribute("re-template");
 
-    // Defining some helper functions to get rid of some duplication
-    const notInTemplate = (query, attr) =>
-      `[${query}]:not([re-template] [${attr || query}])`;
-
-    const updateClass = (className, attr) => (el) => {
-      if (!className) className = el.getAttribute("re-class-name");
-      if (!className)
-        throw new Error(
-          "re-class must be acompanied by a re-class-name attribute with the name of the class in it"
-        );
-      DOMINATOR.updateClass(el, itemData, this.transforms, className, attr);
-    };
-
-    const innerText = (el) =>
-      DOMINATOR.innerText(itemData, el, attr, this.transforms);
-
-    const highjackClick = (el) => DOMINATOR.highjackClick(itemData, el);
-
     // We will use the POINTER_TO_DATA field to find the this element later. In a way we are using the pointer value as the item/element id. So ideally we don't need any extra memory other than our extra pointer value in the clone element.
     Object.assign(clone, { POINTER_TO_DATA: itemData });
 
     // Populate field subscribers
+
+    const update = (attr, fn, query = null) => {
+      // Perform changes on the clone itself in case of simple data
+      if (clone.hasAttribute(attr)) fn(clone);
+      // Update targeted children with the provided function
+      const els = clone.querySelectorAll(notInArray(attr, query));
+      els.forEach(fn);
+    };
+
     // TODO: what if the subscribing is to a different store, but we havent subscribed it yet because it was inside a template
-    // TODO: Would need to check for "the not starting with 'this.'" might be a job for the HTMSMELLER!
-    let attr = "re";
-    // Populate the clone itself for simple data cases
-    clone.hasAttribute(attr) && innerText(clone);
-    // Populate the innerText of its children
-    clone
-      .querySelectorAll(notInTemplate(`${attr}^="this."`, attr))
-      .forEach(innerText);
+    update(
+      "re",
+      (el) => DOMINATOR.innerText(itemData, el, "re", this.transforms),
+      're^="this."'
+    );
 
     // Modify the onclick event to include our item data
+    update("re-click", (el) => DOMINATOR.highjackClick(itemData, el));
 
-    attr = "re-click";
-    // Modify the clone in case the whole template is a button
-    clone.hasAttribute(attr) && highjackClick(clone);
-    // Modify children
-    clone.querySelectorAll(notInTemplate(attr)).forEach(highjackClick);
+    // Conditionally reveal item listeners
+    update(
+      "re-show",
+      (el) =>
+        DOMINATOR.updateClass(
+          el,
+          itemData,
+          this.transforms,
+          "re-show",
+          "re-show"
+        ),
+      're-show^="this."'
+    );
 
-    // Conditionally display elements
-    attr = "re-show";
-    clone.hasAttribute(attr) && updateClass("re-show", attr);
-    clone
-      .querySelectorAll(notInTemplate(`${attr}^="this."`, attr))
-      .forEach(updateClass("re-show", attr));
-
-    // Add/remove classes from elements
-    attr = "re-class";
-    clone.hasAttribute(attr) && updateClass(null, attr);
-    clone
-      .querySelectorAll(notInTemplate(`${attr}^="this."`, attr))
-      .forEach(updateClass(null, attr));
+    // Conditionally add class to item listeners
+    update(
+      "re-class",
+      (el) => {
+        let className = elementClassName(el);
+        DOMINATOR.updateClass(
+          el,
+          itemData,
+          this.transforms,
+          className,
+          "re-class"
+        );
+      },
+      're-class^="this."'
+    );
 
     return clone;
   }

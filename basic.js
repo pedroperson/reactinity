@@ -46,9 +46,13 @@ class Reactinity {
 
     // Turn DOM elements reactive
     window.addEventListener("DOMContentLoaded", () => {
-      HTMSMELLER.attachBasic(this.stores, this.transforms);
-      HTMSMELLER.attachShowHide(this.stores, this.transforms);
-      HTMSMELLER.attachArray(this.stores, this.transforms);
+      ROOT_ATTRS.forEach((rootAttr) => {
+        const attr = rootAttr.attr;
+        // Avoiding subscribing elements inside a template, as they will be initialized after cloning by re-array.
+        document
+          .querySelectorAll(notInArray(attr))
+          .forEach(rootAttr.fn(this.stores, this.transforms, attr));
+      });
     });
   }
 }
@@ -81,64 +85,41 @@ class Store {
   }
 }
 
-const HTMSMELLER = {
-  attachBasic: (stores, transforms, parent = null) => {
-    const attr = "re";
-
-    if (!parent) {
-      parent = document;
-    }
-    // TODO: The question is: what happens if a template has a re="loggedIn" subscription? Answer: we need to call this exact function from the array, and initialize the subscription from there, but instead of using document for the search, we use the array parent element. One can see how this could cause performance issue if there are 1000s of elements subscribing to a store that is changing often, but lets keep going for now.
-
-    // Avoiding subscribing elements inside a template, as they will be initialized after cloning by re-array.
-    parent
-      .querySelectorAll(`[${attr}]:not([re-template] [${attr}])`)
-      .forEach((el) => {
-        const storeName = elementStoreName(el, attr);
-        if (!storeName || !stores.hasOwnProperty(storeName))
-          throw "ERROR invalid store name " + storeName;
-
-        const store = stores[storeName];
-
-        store.subscribe((newVal) => {
-          DOMINATOR.innerText(newVal, el, attr, transforms);
-        });
+const ROOT_ATTRS = [
+  {
+    attr: "re",
+    fn: (stores, transforms, attr) => (el) => {
+      elementStore(el, attr, stores).subscribe((v) => {
+        DOMINATOR.innerText(v, el, attr, transforms);
       });
+    },
   },
-  attachShowHide: (stores, transforms) => {
-    const attr = "re-show";
-
-    document
-      .querySelectorAll(`[${attr}]:not([re-template] [${attr}])`)
-      .forEach((el) => {
-        console.log("SHOWIDE", el);
-        const storeName = elementStoreName(el, attr);
-        if (!storeName || !stores.hasOwnProperty(storeName))
-          throw "ERROR invalid store name " + storeName;
-
-        const store = stores[storeName];
-
-        store.subscribe((newVal) => {
-          console.log("did a new show", { newVal, el });
-          DOMINATOR.updateClass(el, newVal, transforms, "re-show", attr);
-        });
+  {
+    attr: "re-show",
+    fn: (stores, transforms, attr) => (el) => {
+      elementStore(el, attr, stores).subscribe((v) => {
+        DOMINATOR.updateClass(el, v, transforms, "re-show", attr);
       });
+    },
   },
-  attachArray: (stores, transforms) => {
-    const tag = "re-array";
-
-    document
-      // TODO: Dont do the not array, use a starts with "this." check instead?
-      .querySelectorAll(`[${tag}]:not([re-array] [${tag}])`)
-      .forEach((el) => {
-        const store = elementStore(el, tag, stores);
-        // TODO: when look for the template, make sure its using a direct child selector
-        // Fancy subscribe to respond to fine grained updates
-        const sub = new ArrayStoreUISubscriber(el, transforms);
-        store.subscribe(sub);
+  {
+    attr: "re-class",
+    fn: (stores, transforms, attr) => (el) => {
+      const className = elementClassName(el);
+      elementStore(el, attr, stores).subscribe((v) => {
+        DOMINATOR.updateClass(el, v, transforms, className, attr);
       });
+    },
   },
-};
+  {
+    attr: "re-array",
+    fn: (stores, transforms, attr) => (el) => {
+      // Fancy subscribe to respond to fine grained updates
+      const sub = new ArrayStoreUISubscriber(el, transforms);
+      elementStore(el, attr, stores).subscribe(sub);
+    },
+  },
+];
 
 const DOMINATOR = {
   innerText: function (newVal, el, tag, transforms) {
@@ -153,6 +134,23 @@ const DOMINATOR = {
       el.innerText = newVal;
     }
   },
+  updateClass: (el, item, allTransforms, className, attr = "re") => {
+    // Handle multiple classes spaced by " " space character
+    const classes = className.split(" ").filter((v) => v);
+    if (classes.length === 0) return;
+
+    // Drill down to field in object
+    let shouldShow = traverseElementFields(item, el, attr);
+    // Transform value according to "re-class-transform" attribute
+    elementTransforms(el, allTransforms, "re-class-transform").forEach(
+      (t) => (shouldShow = t(shouldShow))
+    );
+    // Force it into a boolean to avoid weird bugs
+    shouldShow = !!shouldShow;
+    // Conditionally add/remove the class
+    const fn = shouldShow ? "add" : "remove";
+    classes.forEach((c) => el.classList[fn](c));
+  },
   highjackClick: (itemData, el) => {
     // Hijack the click behavior. We do this to allow the user to use good old html and then we come in and add the item data to the click event to make that easy-peasy
     const original = el.onclick;
@@ -163,23 +161,6 @@ const DOMINATOR = {
       event = Object.assign(event, { item: itemData });
       original(event);
     });
-  },
-  updateClass: (el, item, allTransforms, className, attr = "re") => {
-    // Drill down to field in object
-    let shouldShow = traverseElementFields(item, el, attr);
-    // Transform value according to "re-class-transform" attribute
-    elementTransforms(el, allTransforms, "re-class-transform").forEach(
-      (t) => (shouldShow = t(shouldShow))
-    );
-    // Force it into a boolean to avoid weird bugs
-    shouldShow = !!shouldShow;
-    // Conditionally add/remove the class
-    if (shouldShow) {
-      // Handle multiple classes spaced by " " space character
-      className.split(" ").forEach((c) => el.classList.add(c));
-    } else {
-      className.split(" ").forEach((c) => el.classList.remove(c));
-    }
   },
 };
 
@@ -198,6 +179,15 @@ function elementTransformNames(el, attr = "re-transform") {
     .split(",")
     .map((s) => s.trim())
     .filter((v) => !!v);
+}
+
+function elementClassName(el) {
+  const className = el.getAttribute("re-class-name");
+  if (!className)
+    throw new Error(
+      "re-class must be acompanied by a re-class-name attribute with the name of the class in it"
+    );
+  return className;
 }
 
 function elementStore(el, tag, stores) {
@@ -224,4 +214,8 @@ function traverseElementFields(val, el, tag) {
     .forEach((field) => (val = val[field]));
 
   return val;
+}
+
+function notInArray(attr, query) {
+  return `[${query || attr}]:not([re-array] [${attr}])`;
 }

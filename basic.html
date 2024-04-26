@@ -15,7 +15,7 @@
         font-weight: 700;
       }
 
-      .my-page-width {
+      section {
         width: 100%;
         max-width: 1400px;
         margin-left: auto;
@@ -27,17 +27,10 @@
       }
 
       @media (max-width: 768px) {
-        .my-page-width {
+        section {
           padding-left: 1em;
           padding-right: 1em;
         }
-      }
-    </style>
-
-    <style>
-      .red {
-        border: 1px solid red;
-        color: red;
       }
     </style>
 
@@ -122,7 +115,7 @@
       <button onclick="updateLastClicked()">Update interaction</button>
     </section>
 
-    <!-- TODO:----------------------------------------------------------- -->
+    <!-- ---------------------------------------------------------------- -->
     <!-- CONDITIONAL DISPLAY EXAMPLE ------------------------------------ -->
     <!-- ---------------------------------------------------------------- -->
 
@@ -134,21 +127,64 @@
     </style>
 
     <script>
+      // A boolean store is useful for state that can be toggled
       const showBoxStore = reactinity.newStore("showBox", false);
 
+      // Use a transform to conditionally display text
       reactinity.newTransform("showOrHide", (v) =>
         !v ? "Show Box" : "Hide Box"
       );
     </script>
 
     <section>
-      <!-- Use a button to toggle the visibility of the element with re-show as well as the text of the button -->
-      <button
-        onclick="showBoxStore.update(v=>!v)"
-        re="showBox"
-        re-transform="showOrHide"
-      ></button>
+      <!-- Use a button to toggle the store -->
+      <button onclick="showBoxStore.update(v=>!v)">
+        <!-- Update the button text depending on the visibility -->
+        <span re="showBox" re-transform="showOrHide"></span>
+      </button>
+      <!-- Conditionally display when showBox is truthy -->
       <div re-show="showBox">I start hidden!</div>
+    </section>
+
+    <!-- TODO:----------------------------------------------------------- -->
+    <!-- CLASS EXAMPLE -------------------------------------------------- -->
+    <!-- ---------------------------------------------------------------- -->
+    <script>
+      const addClassStore = reactinity.newStore("addClass", false);
+
+      // Use a transform to conditionally display text
+      reactinity.newTransform("addOrRemoveClass", (v) =>
+        !v ? "Add Class" : "Remove Class"
+      );
+    </script>
+
+    <!-- Define some custome classes to toggle -->
+    <style>
+      .red {
+        border: 1px solid red;
+        color: red;
+      }
+      .max-w-100px {
+        max-width: 100px;
+      }
+    </style>
+
+    <section>
+      <!-- Using a button to cause a data update -->
+      <button
+        onclick="addClassStore.update(v=>!v)"
+        re="addClass"
+        re-transform="addOrRemoveClass"
+      ></button>
+      <!-- Conditionally add classes inside re-class-name when the value of re-class is truthy after running them through the transform functions in re-class-transform. Classes can be separated by spaces -->
+      <!-- TODO: Perform a transform just to show it off -->
+      <div
+        re-class="addClass"
+        re-class-transform=""
+        re-class-name="red max-w-100px"
+      >
+        I start with black text and full width
+      </div>
     </section>
 
     <!-- ---------------------------------------------------------------- -->
