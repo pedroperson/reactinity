@@ -287,69 +287,75 @@ class ArrayStoreUISubscriber {
     );
 
     // There might be buddies subscribing to a global store
-    let attr = "re";
+    {
+      let attr = "re";
 
-    clone
-      .querySelectorAll(notInArrayNotStartingWithThis(attr))
-      .forEach((el) => {
-        const store = elementStore(el, attr, this.stores);
-        // Update the contents based on the current store value
-        DOMINATOR.innerText(store.get(), el, attr, this.transforms);
+      clone
+        .querySelectorAll(notInArrayNotStartingWithThis(attr))
+        .forEach((el) => {
+          const store = elementStore(el, attr, this.stores);
+          // Update the contents based on the current store value
+          DOMINATOR.innerText(store.get(), el, attr, this.transforms);
 
-        if (this.storesISubscribeTo.includes(store)) {
-          return;
-        }
-        // Subscribe to the store just once at the array level so we don't end up with thousands of subscriptions going for large arrays
-        this.storesISubscribeTo.push(store);
+          if (this.storesISubscribeTo.includes(store)) {
+            return;
+          }
+          // Subscribe to the store just once at the array level so we don't end up with thousands of subscriptions going for large arrays
+          this.storesISubscribeTo.push(store);
 
-        store.subscribe((v) => {
-          const storeName = elementStoreName(el, attr);
-          this.parent
-            .querySelectorAll(`[${attr}^=${storeName}]`)
-            .forEach((el) => DOMINATOR.innerText(v, el, attr, this.transforms));
+          store.subscribe((v) => {
+            const storeName = elementStoreName(el, attr);
+            this.parent
+              .querySelectorAll(`[${attr}^=${storeName}]`)
+              .forEach((el) =>
+                DOMINATOR.innerText(v, el, attr, this.transforms)
+              );
+          });
         });
-      });
+    }
 
     // TODO: There can be an array inside this array. this is gonna be tough
-    attr = "re-array";
-    clone.querySelectorAll(notInArray(attr)).forEach((el) => {
-      const storeName = elementStoreName(el, attr);
-      console.log("INNER ARRAY", el, storeName);
-      // TODO: The store name can be a global array store or "this"
-      if (storeName === "this") {
-        let v = traverseElementFields(itemData, el, attr);
-        console.log("traversed", itemData, v);
-        // IDK about this
-        if (!v || v.length === 0) return;
+    {
+      let attr = "re-array";
+      clone.querySelectorAll(notInArray(attr)).forEach((el) => {
+        const storeName = elementStoreName(el, attr);
+        console.log("INNER ARRAY", el, storeName);
+        // TODO: The store name can be a global array store or "this"
+        if (storeName === "this") {
+          let v = traverseElementFields(itemData, el, attr);
+          console.log("traversed", itemData, v);
+          // IDK about this
+          if (!v || v.length === 0) return;
 
-        if (!Array.isArray(v))
-          throw new Error(
-            "a 're-array' needs to reference to an array, not a type of:" +
-              typeof v
-          );
+          if (!Array.isArray(v))
+            throw new Error(
+              "a 're-array' needs to reference to an array, not a type of:" +
+                typeof v
+            );
 
-        // Now we want to clone the template and fill it out with our data
-        // At least the template is guaranteed to still be there
-        const template = el.querySelector("[re-template]");
-        if (!template)
-          throw new Error("a 're-array' needs a template as its first child");
+          // Now we want to clone the template and fill it out with our data
+          // At least the template is guaranteed to still be there
+          const template = el.querySelector("[re-template]");
+          if (!template)
+            throw new Error("a 're-array' needs a template as its first child");
 
-        while (el.firstChild) {
-          el.removeChild(el.lastChild);
+          while (el.firstChild) {
+            el.removeChild(el.lastChild);
+          }
+
+          v.forEach((item) => {
+            const clone = template.cloneNode(true);
+            clone.removeAttribute("re-template");
+            console.log("populate clone");
+            this._populateClone(clone, item);
+
+            el.appendChild(clone);
+          });
+
+          // TODO: this is
         }
-
-        v.forEach((item) => {
-          const clone = template.cloneNode(true);
-          clone.removeAttribute("re-template");
-          console.log("populate clone");
-          this._populateClone(clone, item);
-
-          el.appendChild(clone);
-        });
-
-        // TODO: this is
-      }
-    });
+      });
+    }
 
     return clone;
   }
