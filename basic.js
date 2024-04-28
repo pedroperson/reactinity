@@ -8,12 +8,11 @@ class Reactinity {
   }
 
   newStore(name, initialValue) {
-    if (this.stores.hasOwnProperty(name)) {
+    if (this.stores.hasOwnProperty(name))
       throw new Error(`A store named '${name}' already exists.`);
-    }
-    if (name === "this") {
+
+    if (name === "this")
       throw new Error(`Calling a store "this" is not allowed.`);
-    }
 
     this.stores[name] = new Store(initialValue);
     return this.stores[name];
@@ -52,7 +51,7 @@ class Reactinity {
         // Avoiding subscribing elements inside a template, as they will be initialized after cloning by re-array.
         document
           .querySelectorAll(notInArray(attr))
-          .forEach(rootAttr.fn(this.stores, this.transforms, attr));
+          .forEach((el) => rootAttr.fn(this.stores, this.transforms, attr)(el));
       });
     });
   }
