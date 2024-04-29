@@ -111,6 +111,7 @@ const ROOT_ATTRS = [
           transforms,
           "re-class-transform"
         );
+        // TODO: Should should be a class operation or just el.style.display? The class solution is trash because we need to define global styles in the css. The style is trash because everything will start showing by default until the code runs.
         DOMINATOR.updateClass(el, v, "re-show");
       });
     },
