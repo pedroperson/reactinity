@@ -36,7 +36,7 @@ class ArrayStore {
     this.broadcastChange((s) => s.append(val));
   }
 
-  /** Find a row in the store with the provided function, and wraps it with method to edit it reactively */
+  /** Find a row in the store with the provided function, and wraps it with methods to edit it reactively */
   getEditableRow(where) {
     const row = this.array.find(where);
     if (!row) return undefined;
@@ -152,41 +152,37 @@ class ArrayStoreUISubscriber {
     const allWithField = (attr) =>
       el.querySelectorAll(`[${attr}^="this.${field}"]`);
 
+    const transformDataForElement = (el, attr, transAttr) => {
+      return traverseFieldsAndTransform(
+        el,
+        itemData,
+        attr,
+        this.transforms,
+        transAttr
+      );
+    };
+
     allWithField("re").forEach((el) => {
-      const v = traverseFieldsAndTransform(el, itemData, "re", this.transforms);
+      const v = transformDataForElement(el, "re");
       DOMINATOR.innerText(el, v);
     });
 
     allWithField("re-show").forEach((el) => {
-      const v = traverseFieldsAndTransform(
-        el,
-        itemData,
-        "re-show",
-        this.transforms,
-        "re-class-transform"
-      );
+      const v = transformDataForElement(el, "re-show", "re-class-transform");
       DOMINATOR.updateClass(el, v, "re-show");
     });
 
-    el.querySelectorAll(`[re-class^="this.${field}"]`).forEach((el) => {
-      if (field !== el.getAttribute("re-class").split(",")[1].trim()) {
-        console.log("looking at the wrong class field");
-        return;
-      }
-      const v = traverseFieldsAndTransform(
-        el,
-        itemData,
-        "re-class",
-        this.transforms,
-        "re-class-transform"
-      );
+    allWithField("re-class").forEach((el) => {
+      const v = transformDataForElement(el, "re-class", "re-class-transform");
       DOMINATOR.updateClass(el, v, elementClassName(el));
     });
 
-    el.querySelectorAll(`[re-src^="this.${field}"]`).forEach((el) => {
-      DOMINATOR.updateSRC(el, itemData, this.transforms);
-      console.log("LETS GO ALT!?!?!?!?!?!?");
-      DOMINATOR.updateAlt(el, itemData, this.transforms);
+    allWithField("re-src").forEach((el) => {
+      const src = transformDataForElement(el, "re-src", "re-src-transform");
+      DOMINATOR.updateSRC(el, src);
+
+      const alt = transformDataForElement(el, "re-alt", "re-alt-transform");
+      DOMINATOR.updateAlt(el, alt);
     });
   }
 
@@ -223,6 +219,7 @@ class ArrayStoreUISubscriber {
       // Update targeted children with the provided function
       const els = clone.querySelectorAll(notInArray(attr, query));
       els.forEach(fn);
+      // Allow passing in a secondary query, pretty much so we can do ^=this. and =this
       if (otherQuery) {
         const els = clone.querySelectorAll(notInArray(attr, otherQuery));
         els.forEach(fn);
@@ -287,8 +284,23 @@ class ArrayStoreUISubscriber {
     update(
       "re-src",
       (el) => {
-        DOMINATOR.updateSRC(el, itemData, this.transforms);
-        DOMINATOR.updateAlt(el, itemData, this.transforms);
+        const src = traverseFieldsAndTransform(
+          el,
+          itemData,
+          "re-src",
+          this.transforms,
+          "re-src-transform"
+        );
+        DOMINATOR.updateSRC(el, src);
+
+        const alt = traverseFieldsAndTransform(
+          el,
+          itemData,
+          "re-alt",
+          this.transforms,
+          "re-alt-transform"
+        );
+        DOMINATOR.updateAlt(el, alt);
       },
       're-src^="this."',
       're-src="this"'
