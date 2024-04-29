@@ -170,14 +170,17 @@ const DOMINATOR = {
     const fn = shouldShow ? "add" : "remove";
     classes.forEach((c) => el.classList[fn](c));
   },
-  highjackClick: (itemData, el) => {
-    // Hijack the click behavior. We do this to allow the user to use good old html and then we come in and add the item data to the click event to make that easy-peasy
-    const original = el.onclick;
-    el.onclick = null;
-    el.removeAttribute("onclick");
-    // Now we write our event customization layer so that the user has easy access to the item in the array related to the button being clicked
-    el.addEventListener("click", (event) => {
-      event = Object.assign(event, { item: itemData });
+
+  // Hijack an html event handler. This lets the user to use html to decribe their event handling, and then we come in and add the related item data to make it easy to respond to the data actually being targeted.
+  highjackEvent: function (eventName, el, itemData) {
+    const onEvent = "on" + eventName;
+    // Keep the original and remove the reference to it
+    const original = el[onEvent];
+    el[onEvent] = null;
+    el.removeAttribute(onEvent);
+    // Replace it with a layer that adds data to the event and runs the original handler
+    el.addEventListener(eventName, (event) => {
+      event = Object.assign(event, { this: itemData });
       original(event);
     });
   },

@@ -242,7 +242,7 @@ class ArrayStoreUISubscriber {
     );
 
     // Modify the onclick event to include our item data
-    update("re-click", (el) => DOMINATOR.highjackClick(itemData, el));
+    update("re-click", (el) => DOMINATOR.highjackEvent("click", el, itemData));
 
     // Conditionally reveal item listeners
     update(
