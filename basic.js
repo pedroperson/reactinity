@@ -95,7 +95,8 @@ const ROOT_ATTRS = [
     attr: "re",
     fn: (el, store, transforms, attr) => {
       store.subscribe((v) => {
-        DOMINATOR.innerText(v, el, attr, transforms);
+        v = traverseFieldsAndTransform(el, v, attr, transforms);
+        DOMINATOR.innerText(el, v);
       });
     },
   },
@@ -103,7 +104,14 @@ const ROOT_ATTRS = [
     attr: "re-show",
     fn: (el, store, transforms, attr) => {
       store.subscribe((v) => {
-        DOMINATOR.updateClass(el, v, transforms, "re-show", attr);
+        v = traverseFieldsAndTransform(
+          el,
+          v,
+          attr,
+          transforms,
+          "re-class-transform"
+        );
+        DOMINATOR.updateClass(el, v, "re-show");
       });
     },
   },
@@ -112,7 +120,14 @@ const ROOT_ATTRS = [
     fn: (el, store, transforms, attr) => {
       const className = elementClassName(el);
       store.subscribe((v) => {
-        DOMINATOR.updateClass(el, v, transforms, className, attr);
+        v = traverseFieldsAndTransform(
+          el,
+          v,
+          attr,
+          transforms,
+          "re-class-transform"
+        );
+        DOMINATOR.updateClass(el, v, className);
       });
     },
   },
@@ -127,12 +142,7 @@ const ROOT_ATTRS = [
 ];
 
 const DOMINATOR = {
-  innerText: function (newVal, el, tag, transforms) {
-    // TODO: should we copy this value before editing it? cus if we are modifying an object, the transforms may end upmodifying the actual object. One solution here is to not allow objects, but thats shit. what if i what the length of an array of something, or the object.keys.length ? So I guess the only way out if to make a copy of the data. alternatively I can CHECK if its a simple type and then we dont need to copy, but if its an object we need some sort of deep(?) copy.
-    // Drill down to the desired field in the object
-    newVal = traverseElementFields(newVal, el, tag);
-    // Transform the value before rendering
-    elementTransforms(el, transforms).forEach((t) => (newVal = t(newVal)));
+  innerText: function (el, newVal) {
     // Turn to string since the dom is gonna do this anyway.
     newVal = newVal.toString();
     // Conditially rerender
@@ -140,22 +150,34 @@ const DOMINATOR = {
       el.innerText = newVal;
     }
   },
-  updateClass: (el, item, allTransforms, className, attr = "re") => {
+  updateClass: (el, shouldShow, className) => {
     // Handle multiple classes spaced by " " space character
     const classes = className.split(" ").filter((v) => v);
     if (classes.length === 0) return;
 
-    // Drill down to field in object
-    let shouldShow = traverseElementFields(item, el, attr);
-    // Transform value according to "re-class-transform" attribute
-    elementTransforms(el, allTransforms, "re-class-transform").forEach(
-      (t) => (shouldShow = t(shouldShow))
-    );
     // Force it into a boolean to avoid weird bugs
     shouldShow = !!shouldShow;
     // Conditionally add/remove the class
     const fn = shouldShow ? "add" : "remove";
     classes.forEach((c) => el.classList[fn](c));
+  },
+  updateSRC: (el, newVal, transforms) => {
+    newVal = traverseFieldsAndTransform(el, newVal, "re-src", transforms);
+    // Turn to string since the dom is gonna do this anyway.
+    newVal = newVal.toString();
+    // Conditially rerender
+    if (newVal !== el.src) {
+      el.src = newVal;
+    }
+  },
+  updateAlt: (el, newVal, transforms) => {
+    newVal = traverseFieldsAndTransform(el, newVal, "re-alt", transforms);
+    // Turn to string since the dom is gonna do this anyway.
+    newVal = newVal.toString();
+    // Conditially rerender
+    if (newVal !== el.alt) {
+      el.alt = newVal;
+    }
   },
   highjackClick: (itemData, el) => {
     // Hijack the click behavior. We do this to allow the user to use good old html and then we come in and add the item data to the click event to make that easy-peasy
@@ -167,32 +189,6 @@ const DOMINATOR = {
       event = Object.assign(event, { item: itemData });
       original(event);
     });
-  },
-  updateSRC: (el, newVal, transforms) => {
-    // Drill down to the desired field in the object
-    newVal = traverseElementFields(newVal, el, "re-src");
-    // Transform the value before rendering
-    elementTransforms(el, transforms).forEach((t) => (newVal = t(newVal)));
-    // Turn to string since the dom is gonna do this anyway.
-    newVal = newVal.toString();
-    // Conditially rerender
-    if (newVal !== el.src) {
-      el.src = newVal;
-    }
-  },
-  updateAlt: (el, newVal, transforms) => {
-    console.log("HEY re-alt", newVal);
-    // Drill down to the desired field in the object
-    newVal = traverseElementFields(newVal, el, "re-alt");
-    console.log("re-alt", newVal);
-    // Transform the value before rendering
-    elementTransforms(el, transforms).forEach((t) => (newVal = t(newVal)));
-    // Turn to string since the dom is gonna do this anyway.
-    newVal = newVal.toString();
-    // Conditially rerender
-    if (newVal !== el.alt) {
-      el.alt = newVal;
-    }
   },
 };
 
@@ -243,6 +239,24 @@ function traverseElementFields(val, el, attr) {
     .forEach((field) => (val = val[field]));
 
   return val;
+}
+
+function traverseFieldsAndTransform(
+  el,
+  value,
+  tag,
+  transforms,
+  transformAttr = "re-transform"
+) {
+  value = traverseElementFields(value, el, tag);
+
+  // TODO: should we copy this value before editing it? cus if we are modifying an object, the transforms may end upmodifying the actual object. One solution here is to not allow objects, but thats shit. what if i what the length of an array of something, or the object.keys.length ? So I guess the only way out if to make a copy of the data. alternatively I can CHECK if its a simple type and then we dont need to copy, but if its an object we need some sort of deep(?) copy.
+
+  // Transform the value before rendering
+  elementTransforms(el, transforms, transformAttr).forEach(
+    (t) => (value = t(value))
+  );
+  return value;
 }
 
 // Some repeated queries
