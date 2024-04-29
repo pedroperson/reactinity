@@ -149,36 +149,41 @@ class ArrayStoreUISubscriber {
     const el = this._findElementWithPointer(itemData);
     if (!el) throw new Error("updateField element was not found");
 
-    const attr = "re";
-    el.querySelectorAll(`[${attr}^="this.${field}"]`).forEach((el) => {
-      DOMINATOR.innerText(itemData, el, attr, this.transforms);
+    const allWithField = (attr) =>
+      el.querySelectorAll(`[${attr}^="this.${field}"]`);
+
+    allWithField("re").forEach((el) => {
+      const v = traverseFieldsAndTransform(el, itemData, "re", this.transforms);
+      DOMINATOR.innerText(el, v);
     });
 
-    el.querySelectorAll(`[re-show^="this.${field}"]`).forEach((el) => {
-      DOMINATOR.updateClass(
+    allWithField("re-show").forEach((el) => {
+      const v = traverseFieldsAndTransform(
         el,
         itemData,
-        this.transforms,
         "re-show",
-        "re-show"
+        this.transforms,
+        "re-class-transform"
       );
+      DOMINATOR.updateClass(el, v, "re-show");
     });
 
-    el.querySelectorAll(`[re-class]`).forEach((el) => {
+    el.querySelectorAll(`[re-class^="this.${field}"]`).forEach((el) => {
       if (field !== el.getAttribute("re-class").split(",")[1].trim()) {
         console.log("looking at the wrong class field");
         return;
       }
-      DOMINATOR.updateClass(
+      const v = traverseFieldsAndTransform(
         el,
         itemData,
+        "re-class",
         this.transforms,
-        elementClassName(el),
-        "re-class"
+        "re-class-transform"
       );
+      DOMINATOR.updateClass(el, v, elementClassName(el));
     });
 
-    el.querySelectorAll(`[re-src]`).forEach((el) => {
+    el.querySelectorAll(`[re-src^="this.${field}"]`).forEach((el) => {
       DOMINATOR.updateSRC(el, itemData, this.transforms);
       console.log("LETS GO ALT!?!?!?!?!?!?");
       DOMINATOR.updateAlt(el, itemData, this.transforms);
@@ -226,7 +231,15 @@ class ArrayStoreUISubscriber {
 
     update(
       "re",
-      (el) => DOMINATOR.innerText(itemData, el, "re", this.transforms),
+      (el) => {
+        const v = traverseFieldsAndTransform(
+          el,
+          itemData,
+          "re",
+          this.transforms
+        );
+        DOMINATOR.innerText(el, v);
+      },
       're^="this."',
       're="this"'
     );
@@ -237,14 +250,16 @@ class ArrayStoreUISubscriber {
     // Conditionally reveal item listeners
     update(
       "re-show",
-      (el) =>
-        DOMINATOR.updateClass(
+      (el) => {
+        const v = traverseFieldsAndTransform(
           el,
           itemData,
-          this.transforms,
           "re-show",
-          "re-show"
-        ),
+          this.transforms,
+          "re-class-transform"
+        );
+        DOMINATOR.updateClass(el, v, "re-show");
+      },
       're-show^="this."',
       're-show="this"'
     );
@@ -254,13 +269,15 @@ class ArrayStoreUISubscriber {
       "re-class",
       (el) => {
         let className = elementClassName(el);
-        DOMINATOR.updateClass(
+        const v = traverseFieldsAndTransform(
           el,
           itemData,
+          "re-class",
           this.transforms,
-          className,
-          "re-class"
+          "re-class-transform"
         );
+
+        DOMINATOR.updateClass(el, itemData, className);
       },
       're-class^="this."',
       're-class="this"'
@@ -285,7 +302,13 @@ class ArrayStoreUISubscriber {
         .forEach((el) => {
           const store = elementStore(el, attr, this.stores);
           // Update the contents based on the current store value
-          DOMINATOR.innerText(store.get(), el, attr, this.transforms);
+          const v = traverseFieldsAndTransform(
+            el,
+            store.get(),
+            attr,
+            this.transforms
+          );
+          DOMINATOR.innerText(el, v);
 
           if (this.storesISubscribeTo.includes(store)) {
             return;
@@ -293,13 +316,19 @@ class ArrayStoreUISubscriber {
           // Subscribe to the store just once at the array level so we don't end up with thousands of subscriptions going for large arrays
           this.storesISubscribeTo.push(store);
 
-          store.subscribe((v) => {
+          store.subscribe((newVal) => {
             const storeName = elementStoreName(el, attr);
             this.parent
               .querySelectorAll(`[${attr}^=${storeName}]`)
-              .forEach((el) =>
-                DOMINATOR.innerText(v, el, attr, this.transforms)
-              );
+              .forEach((el) => {
+                const v = traverseFieldsAndTransform(
+                  el,
+                  newVal,
+                  attr,
+                  this.transforms
+                );
+                DOMINATOR.innerText(el, v);
+              });
           });
         });
     }
@@ -309,11 +338,9 @@ class ArrayStoreUISubscriber {
       let attr = "re-array";
       clone.querySelectorAll(notInArray(attr)).forEach((el) => {
         const storeName = elementStoreName(el, attr);
-        console.log("INNER ARRAY", el, storeName);
         // TODO: The store name can be a global array store or "this"
         if (storeName === "this") {
           let v = traverseElementFields(itemData, el, attr);
-          console.log("traversed", itemData, v);
           // IDK about this
           if (!v || v.length === 0) return;
 
@@ -336,13 +363,14 @@ class ArrayStoreUISubscriber {
           v.forEach((item) => {
             const clone = template.cloneNode(true);
             clone.removeAttribute("re-template");
-            console.log("populate clone");
             this._populateClone(clone, item);
 
             el.appendChild(clone);
           });
 
           // TODO: this is
+        } else {
+          // TODO: what if its a global store?! wait is this working already!?
         }
       });
     }
