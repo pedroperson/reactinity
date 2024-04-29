@@ -43,13 +43,17 @@ class Reactinity {
     this.newTransform("length", (val) => val.length);
     this.newTransform("date", (unix) => new Date(unix).toLocaleDateString());
     this.newTransform("time", (unix) => new Date(unix).toLocaleTimeString());
+    this.newTransform(
+      "yyyy-MM-dd",
+      (unix) => new Date(unix * 1000).toISOString().split("T")[0]
+    );
 
     // Turn DOM elements reactive
     window.addEventListener("DOMContentLoaded", () => {
       ROOT_ATTRS.forEach((rootAttr) => {
         const attr = rootAttr.attr;
         // Avoiding subscribing elements inside a template, as they will be initialized after cloning by re-array.
-        document.querySelectorAll(notInArray(attr)).forEach((el) => {
+        document.querySelectorAll(inSameContext(attr)).forEach((el) => {
           const store = elementStore(el, attr, this.stores);
           rootAttr.fn(el, store, this.transforms, attr, this.stores);
         });
@@ -138,6 +142,13 @@ const ROOT_ATTRS = [
       // Fancy subscribe to respond to fine grained updates
       const sub = new ArrayStoreUISubscriber(el, stores, transforms);
       store.subscribe(sub);
+    },
+  },
+
+  {
+    attr: "re-form",
+    fn: (el, store, transforms, attr, stores) => {
+      formUI(el, store, transforms);
     },
   },
 ];
@@ -253,17 +264,32 @@ function traverseFieldsAndTransform(
   return value;
 }
 
-// Some repeated queries
-function notInArray(attr, query) {
-  return `[${query || attr}]:not([re-array] [${attr}])`;
+// QUERY SELECTORS
+function inSameContext(attr, query) {
+  return `[${query || attr}]` + notInsideArray(attr) + notPartOfForm(attr);
 }
 
-function notInArrayNotStartingWithThis(attr, query) {
-  return `[${
-    query || attr
-  }]:not([re-array] [${attr}]):not([${attr}^="this."]):not([${attr}="this"])`;
+function inSameContextNotStartingWithTHIS(attr, query) {
+  return (
+    `[${query || attr}]` +
+    notInsideArray(attr) +
+    notPartOfForm(attr) +
+    notStartinWithThis(attr)
+  );
 }
 
 function startsWithThis(attr) {
   return `[${attr}^="this."],[${attr}="this"]`;
+}
+
+function notPartOfForm(attr) {
+  return `:not([re-form] [${attr}^="this."]):not([re-form] [${attr}="this"])`;
+}
+
+function notInsideArray(attr) {
+  return `:not([re-array] [${attr}])`;
+}
+
+function notStartinWithThis(attr) {
+  return `:not([${attr}^="this."]):not([${attr}="this"])`;
 }
