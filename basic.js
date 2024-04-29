@@ -49,9 +49,10 @@ class Reactinity {
       ROOT_ATTRS.forEach((rootAttr) => {
         const attr = rootAttr.attr;
         // Avoiding subscribing elements inside a template, as they will be initialized after cloning by re-array.
-        document
-          .querySelectorAll(notInArray(attr))
-          .forEach((el) => rootAttr.fn(this.stores, this.transforms, attr)(el));
+        document.querySelectorAll(notInArray(attr)).forEach((el) => {
+          const store = elementStore(el, attr, this.stores);
+          rootAttr.fn(el, store, this.transforms, attr, this.stores);
+        });
       });
     });
   }
@@ -92,35 +93,35 @@ class Store {
 const ROOT_ATTRS = [
   {
     attr: "re",
-    fn: (stores, transforms, attr) => (el) => {
-      elementStore(el, attr, stores).subscribe((v) => {
+    fn: (el, store, transforms, attr) => {
+      store.subscribe((v) => {
         DOMINATOR.innerText(v, el, attr, transforms);
       });
     },
   },
   {
     attr: "re-show",
-    fn: (stores, transforms, attr) => (el) => {
-      elementStore(el, attr, stores).subscribe((v) => {
+    fn: (el, store, transforms, attr) => {
+      store.subscribe((v) => {
         DOMINATOR.updateClass(el, v, transforms, "re-show", attr);
       });
     },
   },
   {
     attr: "re-class",
-    fn: (stores, transforms, attr) => (el) => {
+    fn: (el, store, transforms, attr) => {
       const className = elementClassName(el);
-      elementStore(el, attr, stores).subscribe((v) => {
+      store.subscribe((v) => {
         DOMINATOR.updateClass(el, v, transforms, className, attr);
       });
     },
   },
   {
     attr: "re-array",
-    fn: (stores, transforms, attr) => (el) => {
+    fn: (el, store, transforms, attr, stores) => {
       // Fancy subscribe to respond to fine grained updates
       const sub = new ArrayStoreUISubscriber(el, stores, transforms);
-      elementStore(el, attr, stores).subscribe(sub);
+      store.subscribe(sub);
     },
   },
 ];
@@ -167,23 +168,40 @@ const DOMINATOR = {
       original(event);
     });
   },
+  updateSRC: (el, newVal, transforms) => {
+    // Drill down to the desired field in the object
+    newVal = traverseElementFields(newVal, el, "re-src");
+    // Transform the value before rendering
+    elementTransforms(el, transforms).forEach((t) => (newVal = t(newVal)));
+    // Turn to string since the dom is gonna do this anyway.
+    newVal = newVal.toString();
+    // Conditially rerender
+    if (newVal !== el.src) {
+      el.src = newVal;
+    }
+  },
+  updateAlt: (el, newVal, transforms) => {
+    console.log("HEY re-alt", newVal);
+    // Drill down to the desired field in the object
+    newVal = traverseElementFields(newVal, el, "re-alt");
+    console.log("re-alt", newVal);
+    // Transform the value before rendering
+    elementTransforms(el, transforms).forEach((t) => (newVal = t(newVal)));
+    // Turn to string since the dom is gonna do this anyway.
+    newVal = newVal.toString();
+    // Conditially rerender
+    if (newVal !== el.alt) {
+      el.alt = newVal;
+    }
+  },
 };
 
-function elementStoreName(el, attr) {
-  const str = el.getAttribute(attr);
-  let firstPeriod = str.indexOf(".");
-  firstPeriod = firstPeriod === -1 ? str.length : firstPeriod;
-  return str.substring(0, firstPeriod);
-}
+function elementStore(el, attr, stores) {
+  const storeName = elementStoreName(el, attr);
+  if (!storeName || !stores.hasOwnProperty(storeName))
+    throw "invalid store name " + storeName;
 
-function elementTransformNames(el, attr = "re-transform") {
-  const attribute = el.getAttribute(attr);
-  if (!attribute) return [];
-
-  return attribute
-    .split(",")
-    .map((s) => s.trim())
-    .filter((v) => !!v);
+  return stores[storeName];
 }
 
 function elementClassName(el) {
@@ -195,21 +213,27 @@ function elementClassName(el) {
   return className;
 }
 
-function elementStore(el, tag, stores) {
-  const storeName = elementStoreName(el, tag);
-  if (!storeName || !stores.hasOwnProperty(storeName))
-    throw "ERROR invalid store name " + storeName;
+function elementTransforms(el, transforms, attr = "re-transform") {
+  const attribute = el.getAttribute(attr);
+  if (!attribute) return [];
 
-  return stores[storeName];
-}
-
-function elementTransforms(el, transforms, attr) {
-  const names = elementTransformNames(el, attr);
+  const names = attribute
+    .split(",")
+    .map((s) => s.trim())
+    .filter((v) => !!v);
 
   if (names.some((t) => !transforms.hasOwnProperty(t)))
     throw "ERROR Invalid transform " + attr;
 
   return names.map((name) => transforms[name]);
+}
+
+// ex: <re="storeName.field"> => storeName
+function elementStoreName(el, attr) {
+  const attrStr = el.getAttribute(attr);
+  let firstPeriod = attrStr.indexOf(".");
+  if (firstPeriod === -1) return attrStr;
+  return attrStr.substring(0, firstPeriod);
 }
 
 function traverseElementFields(val, el, attr) {
@@ -221,6 +245,7 @@ function traverseElementFields(val, el, attr) {
   return val;
 }
 
+// Some repeated queries
 function notInArray(attr, query) {
   return `[${query || attr}]:not([re-array] [${attr}])`;
 }

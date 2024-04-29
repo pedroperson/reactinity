@@ -98,17 +98,6 @@ class EditableRow {
   }
 }
 
-// Just an interface
-class ArraySubscriber {
-  /**  @param {Array} newArray */
-  set(newArray) {}
-  append(val) {}
-  deleteRow(data) {}
-  overwriteRow(data, newData) {}
-  /** @param {string} field @param {Function} fn */
-  updateField(data, field, fn) {}
-}
-
 // TODO: Now we do this part!
 
 class ArrayStoreUISubscriber {
@@ -155,54 +144,44 @@ class ArrayStoreUISubscriber {
     this._removeChild(el);
   }
 
-  updateField(data, field, fn) {
-    const el = this._findElementWithPointer(data);
-    console.log("updateField", { el, data });
+  // Sooo much duplicated logic here and in _populateClone. Need to consolidate the stuff. Probably just the function itself can be taken out, like we did ROOT_ATTRS, since the query is so specific to this case and the array case
+  updateField(itemData, field, fn) {
+    const el = this._findElementWithPointer(itemData);
     if (!el) throw new Error("updateField element was not found");
 
     const attr = "re";
-    console.log(
-      "elements with re ",
-      el.querySelectorAll(`[${attr}^="this.${field}"]`)
-    );
     el.querySelectorAll(`[${attr}^="this.${field}"]`).forEach((el) => {
-      console.log("set field thing", { data, el });
-      DOMINATOR.innerText(data, el, attr, this.transforms);
+      DOMINATOR.innerText(itemData, el, attr, this.transforms);
     });
 
-    // TODO: Should probably start here
-
-    // TODO: basic.js has better functions for this
-    const transformWithElement = (v, el) => {
-      const transform = this.transforms[el.getAttribute("re-transform")];
-      if (transform) return transform(v);
-      return v;
-    };
-
-    el.querySelectorAll(`[re-show-field="${field}"]`).forEach((el) => {
-      let v = transformWithElement(data[field], el);
-
-      newVal = traverseElementFields(newVal, el, tag);
-      // Transform the value before rendering
-      elementTransforms(el, transforms).forEach((t) => (newVal = t(newVal)));
-
-      // Coerse into a boolean to avoid some javascript edge cases
-      v = !!v;
-
-      const isShowing = el.classList.contains("re-show");
-      if (v && !isShowing) {
-        el.classList.add("re-show");
-      } else if (!v && isShowing) {
-        el.classList.remove("re-show");
-      }
+    el.querySelectorAll(`[re-show^="this.${field}"]`).forEach((el) => {
+      DOMINATOR.updateClass(
+        el,
+        itemData,
+        this.transforms,
+        "re-show",
+        "re-show"
+      );
     });
 
-    el.querySelectorAll(`[re-class-field]`).forEach((el) => {
-      if (field !== el.getAttribute("re-class-field").split(",")[1].trim()) {
+    el.querySelectorAll(`[re-class]`).forEach((el) => {
+      if (field !== el.getAttribute("re-class").split(",")[1].trim()) {
         console.log("looking at the wrong class field");
         return;
       }
-      updateClass(el, data, this.transforms);
+      DOMINATOR.updateClass(
+        el,
+        itemData,
+        this.transforms,
+        elementClassName(el),
+        "re-class"
+      );
+    });
+
+    el.querySelectorAll(`[re-src]`).forEach((el) => {
+      DOMINATOR.updateSRC(el, itemData, this.transforms);
+      console.log("LETS GO ALT!?!?!?!?!?!?");
+      DOMINATOR.updateAlt(el, itemData, this.transforms);
     });
   }
 
@@ -269,6 +248,7 @@ class ArrayStoreUISubscriber {
       're-show^="this."',
       're-show="this"'
     );
+
     // Conditionally add class to item listeners
     update(
       "re-class",
@@ -286,10 +266,20 @@ class ArrayStoreUISubscriber {
       're-class="this"'
     );
 
+    // TODO: what if the re-src is subscribing to a global store?
+    update(
+      "re-src",
+      (el) => {
+        DOMINATOR.updateSRC(el, itemData, this.transforms);
+        DOMINATOR.updateAlt(el, itemData, this.transforms);
+      },
+      're-src^="this."',
+      're-src="this"'
+    );
+
     // There might be buddies subscribing to a global store
     {
       let attr = "re";
-
       clone
         .querySelectorAll(notInArrayNotStartingWithThis(attr))
         .forEach((el) => {
@@ -314,7 +304,7 @@ class ArrayStoreUISubscriber {
         });
     }
 
-    // TODO: There can be an array inside this array. this is gonna be tough
+    // There can be an array inside this array.
     {
       let attr = "re-array";
       clone.querySelectorAll(notInArray(attr)).forEach((el) => {
@@ -359,4 +349,15 @@ class ArrayStoreUISubscriber {
 
     return clone;
   }
+}
+
+// Just an interface
+class ArraySubscriber {
+  /**  @param {Array} newArray */
+  set(newArray) {}
+  append(val) {}
+  deleteRow(data) {}
+  overwriteRow(data, newData) {}
+  /** @param {string} field @param {Function} fn */
+  updateField(data, field, fn) {}
 }

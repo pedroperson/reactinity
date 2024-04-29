@@ -235,6 +235,11 @@
             { color: "red", sizes: ["s", "m", "l"] },
             { color: "blue", sizes: ["s", "l"] },
           ],
+          image:
+            {
+              src:"http://tiny.cc/68zvxz",
+              alt:"black shirt"
+            },
         },
         {
           name: "skirt",
@@ -242,6 +247,11 @@
           new: true,
           country: { name: "Argentina", code: "ARG" },
           variants: [{ color: "red", sizes: ["l"] }],
+          image:
+            {
+              src:"http://tiny.cc/98zvxz",
+              alt:"pink skirt"
+            },
         },
       ];
 
@@ -266,10 +276,18 @@
 
     <section>
       <!-- Use re-array to render similar repeating items in a list -->
-      <div re-array="products">
+      <div re-array="products" style="display:flex;gap:10px;">
         <!-- re-template defined the HTML for an item. Each value inside the products array will clone this template and populate it with relevant data  -->
         <div re-template>
-          <div>
+          <div style="max-width:300px;width:100%">
+            <div style="position:relative">
+              <img
+                re-src="this.image.src"
+                re-alt="this.image.alt"
+                style="width:100%;object-fit: cover;height:300px"
+              />
+            </div>
+
             <div>
               <!-- using "re" with the *this* directive updates the content depending on the current array item's data. So for every "product" we will print the name field inside the h3 -->
               <h3 re="this.name"></h3>
