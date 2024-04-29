@@ -217,11 +217,11 @@ class ArrayStoreUISubscriber {
       // Perform changes on the clone itself in case of simple data
       if (clone.hasAttribute(attr)) fn(clone);
       // Update targeted children with the provided function
-      const els = clone.querySelectorAll(notInArray(attr, query));
+      const els = clone.querySelectorAll(inSameContext(attr, query));
       els.forEach(fn);
       // Allow passing in a secondary query, pretty much so we can do ^=this. and =this
       if (otherQuery) {
-        const els = clone.querySelectorAll(notInArray(attr, otherQuery));
+        const els = clone.querySelectorAll(inSameContext(attr, otherQuery));
         els.forEach(fn);
       }
     };
@@ -310,7 +310,7 @@ class ArrayStoreUISubscriber {
     {
       let attr = "re";
       clone
-        .querySelectorAll(notInArrayNotStartingWithThis(attr))
+        .querySelectorAll(inSameContextNotStartingWithTHIS(attr))
         .forEach((el) => {
           const store = elementStore(el, attr, this.stores);
           // Update the contents based on the current store value
@@ -348,7 +348,7 @@ class ArrayStoreUISubscriber {
     // There can be an array inside this array.
     {
       let attr = "re-array";
-      clone.querySelectorAll(notInArray(attr)).forEach((el) => {
+      clone.querySelectorAll(inSameContext(attr)).forEach((el) => {
         const storeName = elementStoreName(el, attr);
         // TODO: The store name can be a global array store or "this"
         if (storeName === "this") {
