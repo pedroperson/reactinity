@@ -363,7 +363,7 @@
 
     <section>
       <script>
-        const user = reactinity.newStore("otherUser",{
+        const otherUserStore = reactinity.newStore("otherUser",{
           id:1,
           personal:{
             name:"Joe", 
@@ -380,7 +380,17 @@
           }})
           reactinity.newTransform("michael", (v) => "michael");
 
+          function changeMotherName(){
+            otherUserStore.update(v=>{
+              console.log()
+              v.personal.mother.name=Math.random().toString();
+              v.personal.mother.fanny="JANKY";
+              return v;
+            })
+          }
       </script>
+
+      <button onclick="changeMotherName()">changeMotherName</button>
       
       <form re-form="otherUser.personal">
         <input type="text" re-value="this.name" placeholder="Text Field">
@@ -407,6 +417,8 @@
             re="this.name" re-transform="number"   
             re-value="this.name" re-value-transform-out="number">num</option>
         </select>
+
+        <input type="text" re-value="this.mother.name" placeholder="Mothers name">
         <button type="submit">Submit</button>
     </form>
     </section>
