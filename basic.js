@@ -145,10 +145,18 @@ const DOMINATOR = {
   innerText: function (el, newVal) {
     // Turn to string since the dom is gonna do this anyway.
     newVal = newVal.toString();
-    // Conditially rerender
-    if (newVal !== el.innerText) {
-      el.innerText = newVal;
-    }
+    if (newVal === el.innerText) return;
+    el.innerText = newVal;
+  },
+  updateSRC: (el, src) => {
+    src = src.toString();
+    if (src === el.src) return;
+    el.src = src;
+  },
+  updateAlt: (el, alt) => {
+    alt = alt.toString();
+    if (alt === el.alt) return;
+    el.alt = alt;
   },
   updateClass: (el, shouldShow, className) => {
     // Handle multiple classes spaced by " " space character
@@ -160,24 +168,6 @@ const DOMINATOR = {
     // Conditionally add/remove the class
     const fn = shouldShow ? "add" : "remove";
     classes.forEach((c) => el.classList[fn](c));
-  },
-  updateSRC: (el, newVal, transforms) => {
-    newVal = traverseFieldsAndTransform(el, newVal, "re-src", transforms);
-    // Turn to string since the dom is gonna do this anyway.
-    newVal = newVal.toString();
-    // Conditially rerender
-    if (newVal !== el.src) {
-      el.src = newVal;
-    }
-  },
-  updateAlt: (el, newVal, transforms) => {
-    newVal = traverseFieldsAndTransform(el, newVal, "re-alt", transforms);
-    // Turn to string since the dom is gonna do this anyway.
-    newVal = newVal.toString();
-    // Conditially rerender
-    if (newVal !== el.alt) {
-      el.alt = newVal;
-    }
   },
   highjackClick: (itemData, el) => {
     // Hijack the click behavior. We do this to allow the user to use good old html and then we come in and add the item data to the click event to make that easy-peasy
