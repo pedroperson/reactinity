@@ -43,6 +43,7 @@ class Reactinity {
     this.newTransform("length", (val) => val.length);
     this.newTransform("date", (unix) => new Date(unix).toLocaleDateString());
     this.newTransform("time", (unix) => new Date(unix).toLocaleTimeString());
+    this.newTransform("unix", (str) => new Date(str).getTime() / 1000);
     this.newTransform(
       "yyyy-MM-dd",
       (unix) => new Date(unix * 1000).toISOString().split("T")[0]
@@ -256,6 +257,7 @@ function traverseFieldsAndTransform(
   value = traverseElementFields(value, el, tag);
 
   // TODO: should we copy this value before editing it? cus if we are modifying an object, the transforms may end upmodifying the actual object. One solution here is to not allow objects, but thats shit. what if i what the length of an array of something, or the object.keys.length ? So I guess the only way out if to make a copy of the data. alternatively I can CHECK if its a simple type and then we dont need to copy, but if its an object we need some sort of deep(?) copy.
+  // TODO: Wait, but why would it mutate? only if the transofrm itself mutates a field of an object
 
   // Transform the value before rendering
   elementTransforms(el, transforms, transformAttr).forEach(
@@ -274,7 +276,7 @@ function inSameContextNotStartingWithTHIS(attr, query) {
     `[${query || attr}]` +
     notInsideArray(attr) +
     notPartOfForm(attr) +
-    notStartinWithThis(attr)
+    notStartingWithThis(attr)
   );
 }
 
@@ -290,6 +292,6 @@ function notInsideArray(attr) {
   return `:not([re-array] [${attr}])`;
 }
 
-function notStartinWithThis(attr) {
+function notStartingWithThis(attr) {
   return `:not([${attr}^="this."]):not([${attr}="this"])`;
 }

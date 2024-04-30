@@ -398,8 +398,8 @@
         <input type="email"  re-value="this.email" placeholder="Email">
         <input type="number"  re-value="this.age" re-value-transform-out="number" placeholder="Number">
 
-        <input type="range" re-value="this.age" min="1" max="100">
-        <input type="date" re-value="this.createdAt" re-value-transform="yyyy-MM-dd">
+        <input type="range" re-value="this.age" re-value-transform-out="number" min="1" max="100">
+        <input type="date" re-value="this.createdAt" re-value-transform="yyyy-MM-dd" re-value-transform-out="unix">
         <!-- For checkboxes, do we need re-checked? re-checked-transform? -->
         <!-- TODO: Attach this to bonuses field. Need to be able to handle an array inside this? or is this too much and should be left to the user? -->
         <input type="checkbox" name="checkbox" value="Check1"> Check me
@@ -407,15 +407,13 @@
         <!-- Attached both radios to the name field -->
         <input type="radio" name="radio" re-value="this.name" re-value-transform-out="michael"> Option 1
         <input type="radio" name="radio"  re-value="this.name" re-value-transform-out="length"> Option 2
-        <!-- TODO: do i use re or re-value with textarea?! -->
-        <textarea re="this.description">Text Area</textarea>
-        <textarea re-value="this.description">Text Area</textarea>
-        <select name="select">
+        
+        <textarea re-value="this.description"></textarea>
+
+        <select name="select" re-value="this.age" re-value-transform-out="number" >
           <!-- Trying to set both content and value at the same time -->
-            <option re="this.name" re-transform="length" re-value="this.name" re-value-transform-out="length">len</option>
-            <option 
-            re="this.name" re-transform="number"   
-            re-value="this.name" re-value-transform-out="number">num</option>
+            <option re-value="this.name"  re-value-transform="length">len</option>
+            <option  value="2" >num</option>
         </select>
 
         <input type="text" re-value="this.mother.name" placeholder="Mothers name">
