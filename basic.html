@@ -388,11 +388,25 @@
               return v;
             })
           }
+
+          function logCurrentData(data) {
+
+            console.log("logCurrentData:",{data})
+          }
+
+          function updatePersonalData(newData) {
+            console.log("updatePersonalData:",{newData})
+            // TODO: could use that updateFieldFunction again
+            otherUserStore.update(s=>{
+              s.personal = newData;
+              return s;
+            })
+          }
       </script>
 
       <button onclick="changeMotherName()">changeMotherName</button>
       
-      <form re-form="otherUser.personal">
+      <form re-form="otherUser.personal" re-change onchange="logCurrentData(event.this)" re-submit onsubmit="updatePersonalData(event.this)">
         <input type="text" re-value="this.name" placeholder="Text Field">
         <input type="password"  re-value="this.password" placeholder="Password">
         <input type="email"  re-value="this.email" placeholder="Email">
@@ -419,6 +433,17 @@
         <input type="text" re-value="this.mother.name" placeholder="Mothers name">
         <button type="submit">Submit</button>
     </form>
+    </section>
+
+    <!-- Just to show when the store actually changes, as opposed to when just the form is changing, currently updating the object on submit -->
+    <section>
+      The store value:
+      <span re="otherUser.personal.name"></span>
+      <span re="otherUser.personal.password"></span>
+      <span re="otherUser.personal.email"></span>
+      <span re="otherUser.personal.age"></span>
+      <span re="otherUser.personal.createdAt"></span>
+      <span re="otherUser.personal.mother.name"></span>
     </section>
   </body>
 </html>
