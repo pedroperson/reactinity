@@ -387,6 +387,7 @@
           otherUserStore.update((v) => {
             v.personal.subscribed = false;
             v.personal.favoriteColor = "blue";
+            v.personal.description = "redacted";
             v.personal.mother.name = Math.random().toString();
             v.personal.mother.job = "lawyer";
             return v;
@@ -440,48 +441,25 @@
           re-value-transform="yyyy-MM-dd"
           re-value-transform-out="unix"
         />
-        <div style="margin: 1em; padding: 0.5em; border: 1px solid gray">
-          <!-- For checkboxes, do we need re-checked? re-checked-transform? -->
-          <!-- TODO: the binding is not working -->
-          <input type="checkbox" re-value="this.subscribed" />
-          subscribe to newsletter
 
-          <!-- Attached both radios to the name field -->
-          <input
-            type="radio"
-            name="radio"
-            re-value="this.favoriteColor"
-            re-value-transform-out="blue"
-          />
-          Blue
-          <input
-            type="radio"
-            name="radio"
-            re-value="this.favoriteColor"
-            re-value-transform-out="red"
-          />
-          Red
-        </div>
-
-        <div style="margin: 1em; padding: 0.5em; border: 1px solid red">
-          or with re-checked
+        <div>
           <input type="checkbox" re-checked="this.subscribed" />
           subscribe to newsletter
 
           <input
             type="radio"
             name="radio"
-            re-value="this.favoriteColor"
+            re-checked="this.favoriteColor"
             value="blue"
           />
-          Option 1
+          Blue
           <input
             type="radio"
             name="radio"
-            re-value="this.favoriteColor"
+            re-checked="this.favoriteColor"
             value="red"
           />
-          Option 2
+          Red
         </div>
 
         <textarea re-value="this.description"></textarea>
@@ -513,7 +491,12 @@
       <span re="otherUser.personal.email"></span>
       <span re="otherUser.personal.age"></span>
       <span re="otherUser.personal.createdAt"></span>
+      <span re="otherUser.personal.favoriteColor"></span>
+      <span re="otherUser.personal.subscribed"></span>
       <span re="otherUser.personal.mother.name"></span>
+      <!-- TODO: this panics because the field doesnt exist yet! we need at least a better more clear error when this happens, but in the case the behavior i actually want is for it to show "null" or just completely hide the element -->
+      <!-- <span re="otherUser.personal.mother.job"></span> -->
+      <span re="otherUser.personal.description"></span>
     </section>
   </body>
 </html>
