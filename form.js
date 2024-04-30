@@ -18,16 +18,45 @@ function formUI(formEl, store, transforms) {
       dirtyFields,
       traverseStoreFields(v)
     );
-    console.log("changedFields", changedFields);
 
-    // TODO: This doesnt feel like the appropriate place for this
-    // TODO: We should perform these actions immediately when change is found, lets just pass it in to the updateNonDirtyFields? that way we have the data value and the path immediately there. without having to search. then we can just find the elements, transform the one value for each element, set the value and done
-    formEl
-      .querySelectorAll(`[re-value="this.${changedFields[0]}"]`)
-      .forEach((el) => {
-        console.log("should update form element", el);
-        el;
-      });
+    changedFields.forEach(([field, value]) =>
+      formEl.querySelectorAll(`[re-value="this.${field}"]`).forEach((el) => {
+        elementTransforms(el, transforms, "re-value-transform").forEach(
+          (t) => (value = t(value))
+        );
+        if (el.value !== value) {
+          el.value = value;
+        }
+      })
+    );
+  });
+
+  formEl.addEventListener("change", (event) => {
+    console.log("change!", event.target);
+    const el = event.target;
+    let val = el.value;
+
+    if (el.getAttribute("re-value")) {
+      elementTransforms(el, transforms, "re-value-transform-out").forEach(
+        (t) => (val = t(val))
+      );
+
+      const fields = el.getAttribute("re-value").split(".").slice(1); // skip the store's name
+
+      let field = fields.slice(0, -1).reduce((child, f) => child[f], formData);
+
+      field[fields[fields.length - 1]] = val;
+    } else {
+      console.log("non-reactive form element", el);
+      return;
+    }
+
+    console.log("NOW THE DATA", formData);
+  });
+
+  formEl.addEventListener("submit", (event) => {
+    event.preventDefault();
+    console.log("submit!", formData);
   });
 }
 
@@ -50,7 +79,7 @@ function updateNonDirtyFields(formData, dirtyFields, newValue, basePath = "") {
       if (JSON.stringify(formData[key]) !== JSON.stringify(newValue[key])) {
         formData[key] = [...newValue[key]]; // Creates a shallow copy of the array // TODO: Why shallow? what if there are objects in there?
         // TODO: Should call the element changer from here
-        changedFields.push(currentPath);
+        changedFields.push([currentPath, formData[key]]);
       }
     } else if (
       typeof newValue[key] === "object" &&
@@ -76,7 +105,7 @@ function updateNonDirtyFields(formData, dirtyFields, newValue, basePath = "") {
       if (formData[key] !== newValue[key]) {
         formData[key] = newValue[key];
         // TODO: Should call the element changer from here
-        changedFields.push(currentPath);
+        changedFields.push([currentPath, formData[key]]);
       }
     }
   });
