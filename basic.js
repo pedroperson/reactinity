@@ -184,7 +184,7 @@ const DOMINATOR = {
   },
 
   // Hijack an html event handler. This lets the user to use html to decribe their event handling, and then we come in and add the related item data to make it easy to respond to the data actually being targeted.
-  highjackEvent: function (eventName, el, itemData) {
+  highjackEvent: function (eventName, el, itemData, callback = null) {
     const onEvent = "on" + eventName;
     // Keep the original and remove the reference to it
     const original = el[onEvent];
@@ -196,6 +196,7 @@ const DOMINATOR = {
 
       event = Object.assign(event, { this: itemData });
       original(event);
+      if (callback) callback(event);
     });
   },
 };
