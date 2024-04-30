@@ -31,8 +31,8 @@ function formUI(formEl, store, transforms) {
     );
   });
 
+  // Update formData as the user changes the form elements
   formEl.addEventListener("change", (event) => {
-    console.log("change!", event.target);
     const el = event.target;
     let val = el.value;
 
@@ -42,10 +42,16 @@ function formUI(formEl, store, transforms) {
       );
 
       const fields = el.getAttribute("re-value").split(".").slice(1); // skip the store's name
+      dirtyFields.add(fields.join("."));
 
-      let field = fields.slice(0, -1).reduce((child, f) => child[f], formData);
+      const lastObject = fields
+        .slice(0, -1)
+        .reduce((child, f) => child[f], formData);
 
-      field[fields[fields.length - 1]] = val;
+      const lastField = fields[fields.length - 1];
+      if (lastObject[lastField] !== val) {
+        lastObject[lastField] = val;
+      }
     } else {
       console.log("non-reactive form element", el);
       return;
@@ -54,10 +60,13 @@ function formUI(formEl, store, transforms) {
     console.log("NOW THE DATA", formData);
   });
 
-  formEl.addEventListener("submit", (event) => {
-    event.preventDefault();
-    console.log("submit!", formData);
-  });
+  if (formEl.hasAttribute("re-submit")) {
+    DOMINATOR.highjackEvent("submit", formEl, formData);
+  }
+
+  if (formEl.hasAttribute("re-change")) {
+    DOMINATOR.highjackEvent("change", formEl, formData);
+  }
 }
 
 // This function assumes that formData and store.value are objects and can have nested structures.
@@ -67,7 +76,7 @@ function updateNonDirtyFields(formData, dirtyFields, newValue, basePath = "") {
 
   Object.keys(newValue).forEach((key) => {
     const currentPath = basePath ? `${basePath}.${key}` : key;
-    console.log("currentPath", currentPath);
+    // console.log("currentPath", currentPath);
     // Check if the field is dirty and should be skipped.
     if (dirtyFields.has(currentPath)) {
       return;
