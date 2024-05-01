@@ -194,9 +194,11 @@ const DOMINATOR = {
     el.addEventListener(eventName, (event) => {
       event.preventDefault();
 
-      event = Object.assign(event, { this: itemData });
-      original(event);
+      event = Object.assign(event, { this: structuredClone(itemData) });
+
       if (callback) callback(event);
+
+      original(event);
     });
   },
 };
@@ -242,12 +244,11 @@ function elementStoreName(el, attr) {
 }
 
 function traverseElementFields(val, el, attr) {
-  el.getAttribute(attr)
+  return el
+    .getAttribute(attr)
     .split(".")
     .slice(1) // skip the store's name
-    .forEach((field) => (val = val[field]));
-
-  return val;
+    .reduce((v, field) => v[field], val);
 }
 
 function traverseFieldsAndTransform(
