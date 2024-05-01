@@ -16,9 +16,10 @@ function formUI(formEl, store, transforms) {
   );
 
   if (formEl.hasAttribute("re-submit")) {
-    DOMINATOR.highjackEvent("submit", formEl, formData, (e) =>
-      dirtyFields.clear()
-    );
+    DOMINATOR.highjackEvent("submit", formEl, formData, (e) => {
+      e.preventDefault();
+      dirtyFields.clear();
+    });
   }
 
   if (formEl.hasAttribute("re-change")) {
@@ -41,40 +42,40 @@ function handleStoreUpdate(
     traverseElementFields(newValue, formEl, "re-form")
   );
 
-  changedFields.forEach(([field, v]) => {
-    updateAllWithAttr("re-value", field, v);
-    updateAllWithAttr("re-checked", field, v);
+  changedFields.forEach(([field, val]) => {
+    updateAllWithAttr("re-value", field, val);
+    updateAllWithAttr("re-checked", field, val);
   });
 
   function updateAllWithAttr(attr, field, value) {
     formEl.querySelectorAll(`[${attr}="this.${field}"]`).forEach((el) => {
-      const tatt = `${attr}-transform`;
-      const v = applyTransformations(value, el, transforms, tatt);
+      const tAttr = `${attr}-transform`;
+      const v = applyTransformations(value, el, transforms, tAttr);
       updateFormElement(el, v);
     });
   }
 }
 
-function updateFormElement(element, value) {
-  switch (element.type) {
+function updateFormElement(el, value) {
+  switch (el.type) {
     case "checkbox":
       const isChecked = !!value;
-      if (element.checked !== isChecked) {
-        element.checked = isChecked;
+      if (el.checked !== isChecked) {
+        el.checked = isChecked;
       }
       break;
 
     case "radio":
-      if (element.value === value) {
-        !element.checked && (element.checked = true);
+      if (el.value === value) {
+        !el.checked && (el.checked = true);
       } else {
-        element.checked && (element.checked = false);
+        el.checked && (el.checked = false);
       }
       break;
 
     default:
-      if (element.value !== value) {
-        element.value = value;
+      if (el.value !== value) {
+        el.value = value;
       }
       break;
   }
