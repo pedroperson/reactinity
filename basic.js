@@ -192,8 +192,6 @@ const DOMINATOR = {
     el.removeAttribute(onEvent);
     // Replace it with a layer that adds data to the event and runs the original handler
     el.addEventListener(eventName, (event) => {
-      event.preventDefault();
-
       event = Object.assign(event, { this: structuredClone(itemData) });
 
       if (callback) callback(event);

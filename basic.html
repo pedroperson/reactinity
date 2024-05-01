@@ -352,7 +352,7 @@
     </section>
 
     <!-- ---------------------------------------------------------------- -->
-    <!-- ARRAY EXAMPLE -------------------------------------------------- -->
+    <!-- FORM EXAMPLE -------------------------------------------------- -->
     <!-- ---------------------------------------------------------------- -->
 
     <!-- Bring array logic in -->
@@ -361,6 +361,7 @@
 
     <section>
       <script>
+        // Lets make a Store to represent some user data that we want to edit in a form
         const otherUserStore = reactinity.newStore("otherUser", {
           id: 1,
           personal: {
@@ -380,9 +381,8 @@
             bonuses: [0, 1, 2],
           },
         });
-        reactinity.newTransform("blue", () => "blue");
-        reactinity.newTransform("red", () => "red");
 
+        // Writing a function that forces some values to change from outside the form. Just showing off really
         function changeSomeStuff() {
           otherUserStore.update((v) => {
             v.personal.subscribed = false;
@@ -395,7 +395,6 @@
         }
 
         function updatePersonalData(newData) {
-          console.log("updatePersonalData:", { newData });
           // TODO: could use that updateFieldFunction again
           otherUserStore.update((s) => {
             s.personal = newData;
@@ -407,25 +406,31 @@
       <!-- Just something to cause a change in the store -->
       <button onclick="changeSomeStuff()">changeMotherName</button>
 
+      <!-- Forms can be connected to a store using "re-form". Once connected, the values of the fields in the form will be filled out with the store's contents. The form subscribes to the store and updates field values accordingly. If a user has modified a form field, that field will not be updated when the store updates until the form is submitted. "re-form"s have extra directives to hijack the onchange and onsubmit events and adds the current value of the form to the event object, in the "this field". 
+      "re-change" highjacks your onchange handler and fires it on every onchange and oninput, attaching the currentForm data along. 
+      "re-submit" highjacks your onsubmit function -->
       <form
         re-form="otherUser.personal"
         re-change
-        onchange="console.log('logCurrentData:',(event.this))"
+        onchange="updatePersonalData(event.this)"
         re-submit
         onsubmit="updatePersonalData(event.this)"
       >
         <input type="text" re-value="this.name" placeholder="Text Field" />
+
         <input
           type="password"
           re-value="this.password"
           placeholder="Password"
         />
+
         <input type="email" re-value="this.email" placeholder="Email" />
+
         <input
           type="number"
           re-value="this.age"
           re-value-transform-out="number"
-          placeholder="Number"
+          placeholder="Age"
         />
 
         <input
@@ -435,6 +440,7 @@
           min="1"
           max="100"
         />
+
         <input
           type="date"
           re-value="this.createdAt"
