@@ -10,6 +10,11 @@ function formUI(formEl, store, transforms) {
     handleElementChange(event.target, formData, dirtyFields, transforms)
   );
 
+  // Make input events trigger change events to that user can get up-to-date values as soon as the user types them
+  formEl.addEventListener("input", (event) =>
+    event.target.dispatchEvent(new window.Event("change", { bubbles: true }))
+  );
+
   if (formEl.hasAttribute("re-submit")) {
     DOMINATOR.highjackEvent("submit", formEl, formData, (e) =>
       dirtyFields.clear()
