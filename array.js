@@ -71,7 +71,7 @@ class EditableRow {
     this.row[field] = updateFn(this.row[field]);
 
     this.arrayStore.broadcastChange((s) => {
-      s.updateField(this.row, field, updateFn);
+      s.updateField(this.row, field, null);
     });
   }
 
@@ -145,12 +145,16 @@ class ArrayStoreUISubscriber {
   }
 
   // Sooo much duplicated logic here and in _populateClone. Need to consolidate the stuff. Probably just the function itself can be taken out, like we did ROOT_ATTRS, since the query is so specific to this case and the array case
-  updateField(itemData, field, fn) {
-    const el = this._findElementWithPointer(itemData);
+  updateField(itemData, field, el = null) {
+    if (el === null) el = this._findElementWithPointer(itemData);
     if (!el) throw new Error("updateField element was not found");
 
     const allWithField = (attr) =>
-      el.querySelectorAll(`[${attr}^="this.${field}"]`);
+      el.querySelectorAll(
+        `[${attr}^="this.${field}"],[${attr}$=".${field}"][${attr}^="this."],[${attr}*=".${field}."][${attr}^="this."]`
+      );
+
+    console.log("all with fild", allWithField("re-show"), field);
 
     const transformDataForElement = (el, attr, transAttr) => {
       return traverseFieldsAndTransform(
@@ -183,6 +187,24 @@ class ArrayStoreUISubscriber {
 
       const alt = transformDataForElement(el, "re-alt", "re-alt-transform");
       DOMINATOR.updateAlt(el, alt);
+    });
+
+    // TODO: What if an array subscribes?! in the case of the sizes, the field getting updated in all the way insie an array inside an array!
+    allWithField("re-array").forEach((el) => {
+      if (el.reTemplate) {
+        console.log("el", el, el.children, el.lastChild);
+        while (el.firstChild) {
+          el.removeChild(el.lastChild);
+        }
+
+        const values = traverseElementFields(itemData, el, "re-array");
+        values.forEach((value) => {
+          const clone = el.reTemplate.cloneNode(true);
+          clone.removeAttribute("re-template");
+          this._populateClone(clone, value);
+          el.appendChild(clone);
+        });
+      }
     });
   }
 
@@ -368,6 +390,9 @@ class ArrayStoreUISubscriber {
           if (!template)
             throw new Error("a 're-array' needs a template as its first child");
 
+          // Save the template to the element so we can clone it later
+          Object.assign(el, { reTemplate: template });
+
           while (el.firstChild) {
             el.removeChild(el.lastChild);
           }
@@ -387,6 +412,27 @@ class ArrayStoreUISubscriber {
       });
     }
 
+    {
+      clone
+        .querySelectorAll(inSameContext("re-change") + ":not([re-form])")
+        .forEach((el) => {
+          DOMINATOR.highjackEvent("change", el, itemData);
+        });
+    }
+
+    {
+      clone.querySelectorAll(inSameContext("re-value")).forEach((el) => {
+        const value = traverseElementFields(itemData, el, "re-value");
+        el.value = value;
+      });
+    }
+
+    {
+      clone.querySelectorAll(inSameContext("re-checked")).forEach((el) => {
+        const is = traverseElementFields(itemData, el, "re-checked");
+        if (el.checked !== is) el.checked = is;
+      });
+    }
     return clone;
   }
 }

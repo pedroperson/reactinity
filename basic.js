@@ -156,6 +156,10 @@ const ROOT_ATTRS = [
 
 const DOMINATOR = {
   innerText: function (el, newVal) {
+    if (!newVal) {
+      if (el.innerText !== "") el.innerText = "";
+      return;
+    }
     // Turn to string since the dom is gonna do this anyway.
     newVal = newVal.toString();
     if (newVal === el.innerText) return;
@@ -188,11 +192,15 @@ const DOMINATOR = {
     const onEvent = "on" + eventName;
     // Keep the original and remove the reference to it
     const original = el[onEvent];
+    if (!original) return;
+
     el[onEvent] = null;
     el.removeAttribute(onEvent);
     // Replace it with a layer that adds data to the event and runs the original handler
     el.addEventListener(eventName, (event) => {
-      event = Object.assign(event, { this: structuredClone(itemData) });
+      if (itemData) {
+        event = Object.assign(event, { this: structuredClone(itemData) });
+      }
 
       if (callback) callback(event);
 

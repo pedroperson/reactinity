@@ -234,8 +234,22 @@
           country: { name: "Brazil", code: "BRA" },
           // TODO: An array inside an array is going to be a mess
           variants: [
-            { color: "red", sizes: ["s", "m", "l"] },
-            { color: "blue", sizes: ["s", "l"] },
+            {
+              color: "red",
+              sizes: ["s", "m", "l"],
+              image: {
+                src: "http://tiny.cc/68zvxz",
+                alt: "black shirt",
+              },
+            },
+            {
+              color: "blue",
+              sizes: ["s", "l"],
+              image: {
+                src: "http://tiny.cc/98zvxz",
+                alt: "pink skirt",
+              },
+            },
           ],
           image: {
             src: "http://tiny.cc/68zvxz",
@@ -247,13 +261,29 @@
           price: 20000,
           new: true,
           country: { name: "Argentina", code: "ARG" },
-          variants: [{ color: "red", sizes: ["l"] }],
+          variants: [
+            {
+              color: "red",
+              sizes: ["l"],
+              image: {
+                src: "http://tiny.cc/98zvxz",
+                alt: "pink skirt",
+              },
+            },
+          ],
           image: {
             src: "http://tiny.cc/98zvxz",
             alt: "pink skirt",
           },
         },
       ];
+
+      // Using a madeup field to toggle which color variant is currently being displayed
+      products.forEach((p) => {
+        p.variants.forEach((v, i) => {
+          v.chosen = i === 0;
+        });
+      });
 
       // This time we are going to use an ArrayStore to make the array reactive. They are different from regular Stores in that they expose methods that allow the user to make fine-grained modifications to the array items and have the DOM update minimally.
 
@@ -270,6 +300,31 @@
       function addToCart(product) {
         console.log("TODO: add to cart", product);
       }
+
+      function selectedColor(product, color, checkbox) {
+        const variantIndex = product.variants.findIndex(
+          (v) => v.color === color
+        );
+        console.log("TODO: selected color", {
+          color,
+          product,
+          variantIndex,
+          editable: productsStore.getEditableRow(
+            (p) => console.log({ p, product }) || p.name === product.name
+          ),
+        });
+
+        productsStore
+          .getEditableRow((p) => p.name === product.name)
+          .updateField("variants", (vv) => {
+            vv.forEach((v) => {
+              if (v.color === color) v.chosen = true;
+              else v.chosen = false;
+            });
+            console.log(vv);
+            return vv;
+          });
+      }
     </script>
 
     <!-- TODO: Im not super sold on the re-field vs re="_." debate.... if i have an array of numbers, how am i going to day this value? maybe an empty re-field?   -->
@@ -281,11 +336,22 @@
         <div re-template>
           <div style="max-width: 300px; width: 100%">
             <div style="position: relative">
-              <img
+              <!-- <img
                 re-src="this.image.src"
                 re-alt="this.image.alt"
                 style="width: 100%; object-fit: cover; height: 300px"
-              />
+              /> -->
+              <div re-array="this.variants" style="width: 100%">
+                <!-- I expect the event data to already have some data about the item, but really we also need an item.item on of each of the inputs to have a change listener -->
+                <span re-template re-show="this.chosen">
+                  <!-- TODO: Doesn't work if there is no image! -->
+                  <img
+                    re-src="this.image.src"
+                    re-alt="this.image.alt"
+                    style="width: 100%; object-fit: cover; height: 300px"
+                  />
+                </span>
+              </div>
             </div>
 
             <div>
@@ -305,48 +371,52 @@
               </span>
             </div>
 
-            <!-- JUST TESING -->
-            <div
-              re-array="this.variants"
-              re-change
-              onchange="selectedColor(event.item)"
-            >
-              <!-- I expect the event data to already have some data about the item, but really we also need an item.item on of each of the inputs to have a change listener -->
-              <span re-template>
-                <span re="this.color"></span>
-                <input re-value="this.color" type="radio" name="c" />
-              </span>
-            </div>
+            <!-- TODO: Something to complicate us a bit.  A global store (not "this") inside an array needs to be subscribed by the array-->
+            <div>count: <span re="count" re-transform="dollars"></span></div>
 
-            <div re-array="this.variants">
-              <div re-template>
-                <div>
-                  sizes for <span re="this.color"></span>:
-                  <span re="this.sizes" re-transform="length"></span>
-                </div>
-                <!-- Can have arrays inside arrays inside... -->
-                <div re-array="this.sizes">
+            <!-- JUST TESING -->
+            <form onsubmit="console.log('submit this form')">
+              <form
+                re-change
+                onchange="selectedColor(event.this, event.target.value, event.target)"
+                onsubmit="event.preventDefault()"
+              >
+                <div re-array="this.variants">
+                  <!-- I expect the event data to already have some data about the item, but really we also need an item.item on of each of the inputs to have a change listener -->
                   <span re-template>
-                    <!-- TODO: rendering the base value is not working-->
-                    <span re="this" style="text-transform: capitalize"></span>
-                    <input re-value="this" type="radio" name="s" />
+                    <span re="this.color"></span>
+                    <input
+                      re-value="this.color"
+                      type="radio"
+                      name="c"
+                      re-checked="this.chosen"
+                    />
                   </span>
                 </div>
+              </form>
+
+              <div re-array="this.variants">
+                <div re-template re-show="this.chosen">
+                  <!-- Can have arrays inside arrays inside... -->
+                  <div re-array="this.sizes">
+                    <span re-template>
+                      <!-- TODO: rendering the base value is not working -->
+                      <span re="this" style="text-transform: capitalize"></span>
+                      <input re-value="this" type="radio" name="s" />
+                    </span>
+                  </div>
+                </div>
               </div>
-            </div>
+              <!-- Use re-click to attach the array item to the click event object. Now it is easy to know which data related to the button being clicked -->
+              <button
+                re-click="this"
+                onclick="addToCart(event.this, event)"
+                class="border border-black p-4 w-full flex-1 mt-3"
+              >
+                Add to cart
+              </button>
+            </form>
           </div>
-
-          <!-- TODO: Something to complicate us a bit.  A global store (not "this") inside an array needs to be subscribed by the array-->
-          <div>count: <span re="count" re-transform="dollars"></span></div>
-
-          <!-- Use re-click to attach the array item to the click event object. Now it is easy to know which data related to the button being clicked -->
-          <button
-            re-click="this"
-            onclick="addToCart(event.this)"
-            class="border border-black p-4 w-full flex-1 mt-3"
-          >
-            Add to cart
-          </button>
         </div>
       </div>
     </section>
