@@ -574,5 +574,97 @@
       <!-- <span re="otherUser.personal.mother.job"></span> -->
       <span re="otherUser.personal.description"></span>
     </section>
+
+    <!-- CHALLENGE: Make a user management system -->
+    <section>
+      <script>
+        const memberStore = reactinity.newArrayStore("members", [
+          {
+            id: 1,
+            name: "Joe",
+            role: "admin",
+            createdAt: 1714421552,
+          },
+          {
+            id: 2,
+            name: "Jane",
+            role: "user",
+            createdAt: 1714411530,
+          },
+        ]);
+
+        function addMember() {
+          memberStore.append({
+            id: Math.floor(Math.random() * 1000),
+            name: "New Member",
+            role: "user",
+            createdAt: Date.now(),
+          });
+        }
+
+        function removeMember(member) {
+          memberStore.getEditableRow((m) => m.id === member.id).delete();
+        }
+
+        const memberEditModal = reactinity.newStore("memberEditModal", false);
+        function openEditModal(member) {
+          memberEditModal.set(member);
+        }
+
+        function editMember(newMember) {
+          memberStore
+            .getEditableRow((m) => m.id === newMember.id)
+            .overwrite(newMember);
+          memberEditModal.set(false);
+        }
+
+        // Make sure we use the same roles everywhere
+        const rolesStore = reactinity.newArrayStore("roles", [
+          { name: "Manager", id: "admin" },
+          { name: "User", id: "user" },
+        ]);
+      </script>
+
+      <ul re-array="members">
+        <li re-template>
+          <span re="this.name"></span>
+
+          <span re="this.role"></span>
+
+          <span re="this.createdAt" re-transform="date"></span>
+
+          <button re-click="this" onclick="openEditModal(event.this)">
+            Edit
+          </button>
+
+          <button re-click="this" onclick="removeMember(event.this)">
+            Remove
+          </button>
+        </li>
+      </ul>
+
+      <div>
+        <button onclick="addMember()">Add member</button>
+      </div>
+
+      <div re-show="memberEditModal">
+        <form
+          re-form="memberEditModal"
+          re-submit
+          onsubmit="editMember(event.this)"
+        >
+          <input type="text" re-value="this.name" placeholder="Name" />
+
+          <select re-value="this.role">
+            <option value="admin">Manager</option>
+            <option value="user">User</option>
+          </select>
+
+          <button type="submit">Submit</button>
+
+          <button onclick="memberEditModal.set(false)">Cancel</button>
+        </form>
+      </div>
+    </section>
   </body>
 </html>
