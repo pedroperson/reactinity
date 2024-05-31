@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Reactinity - Example 1</title>
+  </head>
+  <body>
+    <section class="my-page-width mt-12">
+      <!-- Import the js code however you want -->
+      <script src="/reactinity.js"></script>
+
+      <!-- Keep the ArrayStore templates from showing from the start. is there are better way to do this ? Maybe we shouldn't care and just do it js asap? -->
+      <style>
+        [re-template] {
+          display: none;
+        }
+      </style>
+
+      <!-- ---------------------------------------------------------------- -->
+      <!-- INITIALIZE REACTINITY ------------------------------------------ -->
+      <!-- ---------------------------------------------------------------- -->
+      <script>
+        const reactinity = new Reactinity();
+        reactinity.defaultInit();
+      </script>
+
+      <!-- ---------------------------------------------------------------- -->
+      <!-- BASIC EXAMPLES ------------------------------------------------- -->
+      <!-- ---------------------------------------------------------------- -->
+      <script>
+        // Initialize global stores
+        const countStore = reactinity.newStore("count", 0);
+
+        function countUp() {
+          countStore.update((v) => v + 1);
+        }
+
+        function reset() {
+          countStore.set(0);
+        }
+
+        // Initialize a "derived" pattern, should I make this official? seems so simple...
+        const derived = reactinity.newStore("derived", countStore.value);
+        countStore.subscribe((v) => derived.set(v + 100));
+
+        // Initialize an object store
+        const obj = reactinity.newStore("user", {
+          name: "john",
+          age: 12,
+          joined: 1710853950,
+          child: {
+            name: "jenny",
+          },
+        });
+
+        function changeChildName() {
+          obj.update((v) => {
+            v.child.name = "Michael";
+            return v;
+          });
+        }
+      </script>
+
+      <div>Reactive count: <span re-innerhtml="count"></span></div>
+      <button onclick="countUp()">Add to cart</button>
+      <button onclick="reset()">Reset</button>
+      <input type="number" re-bind="count" re-transform="number" />
+      <div>Count plus 100: <span re-innerHTML="derived"></span></div>
+
+      <div style="border: 1px solid black; padding: 1em">
+        <div>Name: <span re-innerhtml="user.name"></span></div>
+        <div>Age: <span re-innerhtml="user.age"></span></div>
+        <div>
+          Joined: <span re-innerhtml="user.joined" re-transform="mmddyy"></span>
+        </div>
+        <div>Child name: <span re-innerhtml="user.child.name"></span></div>
+
+        <button onclick="changeChildName()">Change Child name</button>
+      </div>
+    </section>
+  </body>
+</html>
