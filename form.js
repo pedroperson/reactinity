@@ -2,6 +2,8 @@ function formUI(formEl, store, transforms) {
   const formData = {};
   const dirtyFields = new Set();
 
+  // A form is bound in two ways. When the store changes we want the form to change accordingly, and when the form elements change we want to update the store
+
   store.subscribe((newValue) =>
     handleStoreUpdate(formEl, formData, dirtyFields, transforms, newValue)
   );
@@ -36,7 +38,7 @@ function handleStoreUpdate(
   transforms,
   newValue
 ) {
-  const changedFields = updateNonDirtyFields(
+  const changedFields = mergeNonDirtyFields(
     formData,
     dirtyFields,
     traverseElementFields(newValue, formEl, "re-form")
@@ -48,8 +50,9 @@ function handleStoreUpdate(
   });
 
   function updateAllWithAttr(attr, field, value) {
+    const tAttr = `${attr}-transform`;
+
     formEl.querySelectorAll(`[${attr}="this.${field}"]`).forEach((el) => {
-      const tAttr = `${attr}-transform`;
       const v = applyTransformations(value, el, transforms, tAttr);
       updateFormElement(el, v);
     });
@@ -83,7 +86,7 @@ function updateFormElement(el, value) {
 
 function applyTransformations(value, el, transforms, attr) {
   return elementTransforms(el, transforms, attr).reduce(
-    (acc, transform) => transform(acc),
+    (acc, t) => t(acc),
     value
   );
 }
@@ -102,10 +105,25 @@ function handleElementChange(el, formData, dirtyFields, transforms) {
   const fieldPath = fields.join(".");
 
   const lastField = fields.pop();
-  const lastObject = fields.reduce(
-    (child, f) => child[f] || (child[f] = {}), // TODO: what is this?
-    formData
-  );
+
+  let missingField;
+  let lastObject = formData;
+  for (let i = 0; i < fields.length; i++) {
+    const f = fields[i];
+    if (!lastObject || !lastObject.hasAttribute(f)) {
+      missingField = f;
+      break;
+    }
+
+    lastObject = lastObject[f];
+  }
+  if (missingField) {
+    console.error(
+      "REACTINITY-FORM: unable to handle element changed :",
+      `unable to find field ${missingField} in form data.`
+    );
+    return;
+  }
 
   if (lastObject[lastField] !== value) {
     lastObject[lastField] = value;
@@ -116,13 +134,13 @@ function handleElementChange(el, formData, dirtyFields, transforms) {
 
 // This function assumes that formData and store.value are objects and can have nested structures.
 // It recursively updates formData with values from newValue that are not in dirtyFields.
-function updateNonDirtyFields(formData, dirtyFields, newValue, basePath = "") {
+function mergeNonDirtyFields(formData, dirtyFields, newValue, basePath = "") {
   let changedFields = [];
 
   Object.keys(newValue).forEach((key) => {
     const currentPath = basePath ? `${basePath}.${key}` : key;
 
-    // We skip dirty fields because we don't want to overwrite data the user has already input in case they are changing the field that got changed under them. Imagine you are writing a super long article, and then a late fetch changes the store data. I think the user would rather keep their work in most situations
+    // We skip dirty fields because we don't want to overwrite data the user has already input in case they are changing the field that got changed under them. Imagine you are writing a super long article, and then a late fetch changes the store data and overwrites your form data. I think the user would rather keep their work in most situations
     if (dirtyFields.has(currentPath)) {
       return;
     }
@@ -137,7 +155,7 @@ function updateNonDirtyFields(formData, dirtyFields, newValue, basePath = "") {
         formData[key] = {};
       }
 
-      const nestedChanges = updateNonDirtyFields(
+      const nestedChanges = mergeNonDirtyFields(
         formData[key],
         dirtyFields,
         newV,
@@ -157,7 +175,7 @@ function updateNonDirtyFields(formData, dirtyFields, newValue, basePath = "") {
       return;
     }
 
-    // Update the value and note the change if the value is indeed different.
+    // Update the value and note the change
     if (newV !== oldV) {
       formData[key] = newV;
       changedFields.push([currentPath, newV]);
